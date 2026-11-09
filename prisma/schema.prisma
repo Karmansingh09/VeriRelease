@@ -1,0 +1,283 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum ContractStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum MilestoneStatus {
+  DRAFT
+  FUNDED
+  SUBMITTED
+  EVALUATING
+  ELIGIBLE_FOR_PAYOUT
+  CHANGES_REQUESTED
+  DISPUTED
+  CANCELLED
+}
+
+enum CriterionType {
+  AUTOMATED_TEST
+  FILE_CHANGE
+  CODE_QUALITY
+  SPECIFICATION
+  MANUAL_APPROVAL
+}
+
+enum SubmissionStatus {
+  PENDING
+  EVALUATED
+  SUPERSEDED
+}
+
+enum PolicyStatus {
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+enum PolicyDecision {
+  PASS
+  FAIL
+}
+
+enum PaymentTxType {
+  FUNDING_AUTHORIZATION
+  PAYOUT
+  REFUND
+}
+
+enum PaymentTxStatus {
+  CREATED
+  RESERVED
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  PAYOUT_UNCERTAIN
+  RECONCILIATION_REQUIRED
+}
+
+enum AuditEntityType {
+  CONTRACT
+  MILESTONE
+  PAYMENT
+  RECEIPT
+  CRITERIA
+  SUBMISSION
+  POLICY_EVALUATION
+}
+
+enum AuditActorType {
+  USER
+  SYSTEM_PRINCIPAL
+  WEBHOOK_GITHUB
+  WEBHOOK_PAYPAL
+}
+
+model User {
+  id                  String                @id @db.VarChar(36)
+  email               String                @unique @db.VarChar(255)
+  name                String                @db.VarChar(255)
+  role                String                @db.VarChar(20)
+  paypalPayerId       String?               @db.VarChar(100)
+  paypalReceiverEmail String?               @db.VarChar(255)
+  githubUsername      String?               @db.VarChar(100)
+  createdAt           DateTime              @default(now()) @db.Timestamptz(6)
+  updatedAt           DateTime              @default(now()) @updatedAt @db.Timestamptz(6)
+  clientContracts     Contract[]            @relation("ContractClient")
+  developerContracts  Contract[]            @relation("ContractDeveloper")
+  submissions         MilestoneSubmission[]
+  auditLogs           AuditLog[]
+
+  @@map("User")
+}
+
+model Contract {
+  id                    String      @id @db.VarChar(36)
+  title                 String      @db.VarChar(255)
+  description           String      @db.Text
+  clientId              String      @db.VarChar(36)
+  developerId           String      @db.VarChar(36)
+  status                ContractStatus @default(DRAFT)
+  totalAmountMinorUnits BigInt      @db.BigInt
+  currency              String      @default("USD") @db.VarChar(3)
+  githubRepoOwner       String      @db.VarChar(100)
+  githubRepoName        String      @db.VarChar(100)
+  createdAt             DateTime    @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime    @default(now()) @updatedAt @db.Timestamptz(6)
+
+  client                User        @relation("ContractClient", fields: [clientId], references: [id], onDelete: Restrict)
+  developer             User        @relation("ContractDeveloper", fields: [developerId], references: [id], onDelete: Restrict)
+  milestones            Milestone[]
+
+  @@unique([id, currency], map: "uq_contract_id_currency")
+  @@index([clientId], map: "idx_contract_client")
+  @@index([developerId], map: "idx_contract_developer")
+  @@map("Contract")
+}
+
+model Milestone {
+  id                    String               @id @db.VarChar(36)
+  contractId            String               @db.VarChar(36)
+  title                 String               @db.VarChar(255)
+  description           String               @db.Text
+  orderIndex            Int                  @db.Integer
+  amountMinorUnits      BigInt               @db.BigInt
+  currency              String               @default("USD") @db.VarChar(3)
+  status                MilestoneStatus      @default(DRAFT)
+  activeCriteriaVersion Int                  @default(1) @db.Integer
+  fundedAt              DateTime?            @db.Timestamptz(6)
+  createdAt             DateTime             @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime             @default(now()) @updatedAt @db.Timestamptz(6)
+
+  contract              Contract             @relation(fields: [contractId, currency], references: [id, currency], onDelete: Restrict, map: "fk_milestone_contract_currency")
+  criteria              AcceptanceCriterion[]
+  submissions           MilestoneSubmission[]
+  paymentTransactions   PaymentTransaction[]
+
+  @@unique([contractId, orderIndex], map: "uq_contract_milestone_order")
+  @@unique([id, currency], map: "uq_milestone_id_currency")
+  @@index([contractId], map: "idx_milestone_contract")
+  @@map("Milestone")
+}
+
+model AcceptanceCriterion {
+  id            String        @id @db.VarChar(36)
+  milestoneId   String        @db.VarChar(36)
+  version       Int           @default(1) @db.Integer
+  orderIndex    Int           @db.Integer
+  title         String        @db.VarChar(255)
+  description   String        @db.Text
+  criterionType CriterionType
+  isMandatory   Boolean       @default(true) @db.Boolean
+  createdAt     DateTime      @default(now()) @db.Timestamptz(6)
+
+  milestone     Milestone     @relation(fields: [milestoneId], references: [id], onDelete: Restrict)
+
+  @@unique([milestoneId, version, orderIndex], map: "uq_milestone_criterion_version_order")
+  @@index([milestoneId, version], map: "idx_criterion_milestone_version")
+  @@map("AcceptanceCriterion")
+}
+
+model MilestoneSubmission {
+  id                  String               @id @db.VarChar(36)
+  milestoneId         String               @db.VarChar(36)
+  submissionNumber    Int                  @db.Integer
+  prNumber            Int                  @db.Integer
+  prCommitSha         String               @db.VarChar(40)
+  prUrl               String               @db.VarChar(1000)
+  criteriaVersion     Int                  @db.Integer
+  criteriaSnapshot    Json                 @db.JsonB
+  criteriaHash        String               @db.VarChar(64)
+  status              SubmissionStatus     @default(PENDING)
+  submittedById       String               @db.VarChar(36)
+  submittedAt         DateTime             @default(now()) @db.Timestamptz(6)
+
+  milestone           Milestone            @relation(fields: [milestoneId], references: [id], onDelete: Restrict)
+  submittedBy         User                 @relation(fields: [submittedById], references: [id], onDelete: Restrict)
+  policyEvaluations   PolicyEvaluation[]
+  paymentTransactions PaymentTransaction[]
+
+  @@unique([milestoneId, submissionNumber], map: "uq_milestone_submission_number")
+  @@unique([id, milestoneId, criteriaHash], map: "uq_submission_milestone_hash")
+  @@unique([id, milestoneId], map: "uq_submission_id_milestone_id")
+  @@index([milestoneId], map: "idx_submission_milestone")
+  @@index([submittedById], map: "idx_submission_user")
+  @@map("MilestoneSubmission")
+}
+
+model PolicyEvaluation {
+  id               String          @id @db.VarChar(36)
+  submissionId     String          @db.VarChar(36)
+  milestoneId      String          @db.VarChar(36)
+  criteriaHash     String          @db.VarChar(64)
+  evaluationNumber Int             @default(1) @db.Integer
+  policyVersion    String          @default("1.0.0") @db.VarChar(20)
+  status           PolicyStatus    @default(IN_PROGRESS)
+  decision         PolicyDecision?
+  decisionReason   String?         @db.Text
+  evaluations      Json?           @db.JsonB
+  receiptHash      String?         @db.VarChar(64)
+  completedAt      DateTime?       @db.Timestamptz(6)
+  createdAt        DateTime        @default(now()) @db.Timestamptz(6)
+
+  submission       MilestoneSubmission @relation(fields: [submissionId, milestoneId, criteriaHash], references: [id, milestoneId, criteriaHash], onDelete: Restrict, map: "fk_policy_eval_submission_consistency")
+
+  @@unique([submissionId, evaluationNumber], map: "uq_submission_evaluation_number")
+  @@index([milestoneId], map: "idx_policy_eval_milestone")
+  @@index([submissionId], map: "idx_policy_eval_submission")
+  @@map("PolicyEvaluation")
+}
+
+model PaymentTransaction {
+  id                  String          @id @db.VarChar(36)
+  milestoneId         String          @db.VarChar(36)
+  submissionId        String?         @db.VarChar(36)
+  transactionType     PaymentTxType
+  status              PaymentTxStatus @default(CREATED)
+  idempotencyKey      String          @unique @db.VarChar(128)
+  amountMinorUnits    BigInt          @db.BigInt
+  currency            String          @default("USD") @db.VarChar(3)
+  attemptNumber       Int             @default(1) @db.Integer
+  paypalOrderId       String?         @db.VarChar(100)
+  paypalCaptureId     String?         @db.VarChar(100)
+  paypalPayoutBatchId String?         @db.VarChar(100)
+  paypalPayoutItemId  String?         @db.VarChar(100)
+  errorCode           String?         @db.VarChar(100)
+  errorMessage        String?         @db.VarChar(1000)
+  rawRequest          Json?           @db.JsonB
+  rawResponse         Json?           @db.JsonB
+  createdAt           DateTime        @default(now()) @db.Timestamptz(6)
+  updatedAt           DateTime        @default(now()) @updatedAt @db.Timestamptz(6)
+
+  milestone           Milestone       @relation(fields: [milestoneId, currency], references: [id, currency], onDelete: Restrict, map: "fk_payment_milestone_currency")
+  submission          MilestoneSubmission? @relation(fields: [submissionId, milestoneId], references: [id, milestoneId], onDelete: Restrict, map: "fk_payment_submission_milestone_scoped")
+
+  @@unique([milestoneId, transactionType, attemptNumber], map: "uq_payment_attempt")
+  @@index([milestoneId], map: "idx_payment_milestone")
+  @@index([submissionId], map: "idx_payment_submission")
+  @@map("PaymentTransaction")
+}
+
+model AuditLog {
+  id                   String          @id @db.VarChar(36)
+  entityType           AuditEntityType
+  entityId             String          @db.VarChar(36)
+  actorType            AuditActorType
+  actorUserId          String?         @db.VarChar(36)
+  actorSystemPrincipal String?         @db.VarChar(100)
+  action               String          @db.VarChar(100)
+  previousState        Json?           @db.JsonB
+  newState             Json?           @db.JsonB
+  metadata             Json?           @db.JsonB
+  correlationId        String          @db.VarChar(64)
+  timestamp            DateTime        @default(now()) @db.Timestamptz(6)
+
+  actorUser            User?           @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([entityType, entityId], map: "idx_audit_entity")
+  @@index([timestamp(sort: Desc)], map: "idx_audit_timestamp")
+  @@index([correlationId], map: "idx_audit_correlation")
+  @@index([actorUserId], map: "idx_audit_user")
+  @@map("AuditLog")
+}
+
+model MigrationExecutionContext {
+  migrationName String   @id @map("migration_name") @db.VarChar(255)
+  sessionUser   String   @map("session_user") @db.VarChar(100)
+  currentUser   String   @map("current_user") @db.VarChar(100)
+  currentRole   String   @map("current_role") @db.VarChar(100)
+  executedAt    DateTime @default(now()) @map("executed_at") @db.Timestamptz(6)
+
+  @@map("_migration_execution_context")
+}
+
