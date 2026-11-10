@@ -111,6 +111,24 @@ export interface PaymentRepository {
   ): Promise<PaymentTransaction[]>;
 
   /**
+   * Finds stale RESERVED transactions created before cutoffDate.
+   */
+  findStaleReserved(
+    cutoffDate: Date,
+    limit?: number,
+    options?: PaymentRepositoryOptions
+  ): Promise<PaymentTransaction[]>;
+
+  /**
+   * Finds stale PROCESSING transactions with updatedAt before cutoffDate.
+   */
+  findStaleProcessing(
+    cutoffDate: Date,
+    limit?: number,
+    options?: PaymentRepositoryOptions
+  ): Promise<PaymentTransaction[]>;
+
+  /**
    * Allocates the next sequential attempt number for a milestone and transaction type.
    */
   getNextAttemptNumber(

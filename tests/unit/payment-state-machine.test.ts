@@ -41,8 +41,10 @@ describe("Payment State Machine", () => {
       expect(isPaymentTransitionAllowed("PROCESSING", "PAYOUT_UNCERTAIN")).toBe(true);
     });
 
-    it("allows PAYOUT_UNCERTAIN -> RECONCILIATION_REQUIRED", () => {
+    it("allows PAYOUT_UNCERTAIN -> RECONCILIATION_REQUIRED, SUCCEEDED, FAILED", () => {
       expect(isPaymentTransitionAllowed("PAYOUT_UNCERTAIN", "RECONCILIATION_REQUIRED")).toBe(true);
+      expect(isPaymentTransitionAllowed("PAYOUT_UNCERTAIN", "SUCCEEDED")).toBe(true);
+      expect(isPaymentTransitionAllowed("PAYOUT_UNCERTAIN", "FAILED")).toBe(true);
     });
 
     it("allows RECONCILIATION_REQUIRED -> SUCCEEDED, FAILED", () => {

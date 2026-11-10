@@ -28,6 +28,7 @@ describe("Database Constraints, Triggers, and Roles Integration Test Suite", () 
     await client.query(`
       SET ROLE postgres;
       TRUNCATE TABLE 
+        "PaymentReconciliation",
         "AuditLog", 
         "PaymentTransaction", 
         "PolicyEvaluation", 
@@ -391,6 +392,97 @@ describe("Database Constraints, Triggers, and Roles Integration Test Suite", () 
       ) RETURNING id;
     `);
     expect(validSys.rows.length).toBe(1);
+  });
+
+  // 10b. PaymentReconciliation immutability trigger raises 55000 and check constraints are enforced
+  it("Requirement 10b: PaymentReconciliation immutability trigger raises 55000 and check constraints are enforced", async () => {
+    const { clientId, m1Id } = await seedBasicContract();
+
+    // Create payment transaction
+    await client.query(`
+      INSERT INTO "PaymentTransaction" (
+        id, "milestoneId", "transactionType", status, "idempotencyKey", "amountMinorUnits", currency, "attemptNumber"
+      ) VALUES (
+        'tx_rec_test_001', '${m1Id}', 'FUNDING_AUTHORIZATION', 'PAYOUT_UNCERTAIN', 'key_rec_001', 400000, 'USD', 1
+      );
+    `);
+
+    // Insert valid reconciliation
+    await client.query(`
+      INSERT INTO "PaymentReconciliation" (
+        id, "paymentTransactionId", decision, reason, "evidenceReference", "evidenceType", "actorType", "actorUserId"
+      ) VALUES (
+        'rec_001', 'tx_rec_test_001', 'CONFIRMED_SUCCEEDED', 'Confirmed by support', 'paypal-ticket-123', 'SUPPORT_TICKET', 'USER', '${clientId}'
+      );
+    `);
+
+    // UPDATE fails with SQLSTATE 55000
+    await expect(
+      client.query(`UPDATE "PaymentReconciliation" SET reason = 'tampered' WHERE id = 'rec_001';`)
+    ).rejects.toMatchObject({
+      code: "55000",
+      message: expect.stringContaining("PaymentReconciliation entries are strictly append-only"),
+    });
+
+    // DELETE fails with SQLSTATE 55000
+    await expect(
+      client.query(`DELETE FROM "PaymentReconciliation" WHERE id = 'rec_001';`)
+    ).rejects.toMatchObject({
+      code: "55000",
+      message: expect.stringContaining("PaymentReconciliation entries are strictly append-only"),
+    });
+
+    // Empty reason violates chk_reconciliation_reason
+    await expect(
+      client.query(`
+        INSERT INTO "PaymentReconciliation" (
+          id, "paymentTransactionId", decision, reason, "evidenceReference", "actorType", "actorUserId"
+        ) VALUES (
+          'rec_bad_1', 'tx_rec_test_001', 'CONFIRMED_SUCCEEDED', '   ', 'ref-1', 'USER', '${clientId}'
+        );
+      `)
+    ).rejects.toMatchObject({
+      code: "23514",
+      constraint: "chk_reconciliation_reason",
+    });
+
+    // Missing evidenceReference on CONFIRMED_SUCCEEDED violates chk_reconciliation_evidence
+    await expect(
+      client.query(`
+        INSERT INTO "PaymentReconciliation" (
+          id, "paymentTransactionId", decision, reason, "evidenceReference", "actorType", "actorUserId"
+        ) VALUES (
+          'rec_bad_2', 'tx_rec_test_001', 'CONFIRMED_SUCCEEDED', 'Some reason', NULL, 'USER', '${clientId}'
+        );
+      `)
+    ).rejects.toMatchObject({
+      code: "23514",
+      constraint: "chk_reconciliation_evidence",
+    });
+
+    // Missing evidenceReference on STILL_UNCERTAIN is permitted
+    const stillUncertain = await client.query(`
+      INSERT INTO "PaymentReconciliation" (
+        id, "paymentTransactionId", decision, reason, "evidenceReference", "actorType", "actorUserId"
+      ) VALUES (
+        'rec_ok_uncert', 'tx_rec_test_001', 'STILL_UNCERTAIN', 'Still waiting for provider', NULL, 'USER', '${clientId}'
+      ) RETURNING id;
+    `);
+    expect(stillUncertain.rows.length).toBe(1);
+
+    // Actor consistency: USER without actorUserId violates chk_reconciliation_actor
+    await expect(
+      client.query(`
+        INSERT INTO "PaymentReconciliation" (
+          id, "paymentTransactionId", decision, reason, "evidenceReference", "actorType", "actorUserId"
+        ) VALUES (
+          'rec_bad_3', 'tx_rec_test_001', 'STILL_UNCERTAIN', 'Reason', NULL, 'USER', NULL
+        );
+      `)
+    ).rejects.toMatchObject({
+      code: "23514",
+      constraint: "chk_reconciliation_actor",
+    });
   });
 
   // 11. Acceptance criteria and submissions cannot be updated or deleted after creation
@@ -1061,6 +1153,14 @@ describe("Database Constraints, Triggers, and Roles Integration Test Suite", () 
 
             await expect(
               appClient.query('TRUNCATE TABLE "AuditLog";')
+            ).rejects.toMatchObject({ code: "42501" });
+
+            await expect(
+              appClient.query('DELETE FROM "PaymentReconciliation";')
+            ).rejects.toMatchObject({ code: "42501" });
+
+            await expect(
+              appClient.query('TRUNCATE TABLE "PaymentReconciliation";')
             ).rejects.toMatchObject({ code: "42501" });
 
             await expect(

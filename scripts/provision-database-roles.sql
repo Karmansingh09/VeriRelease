@@ -68,12 +68,12 @@ GRANT USAGE ON SCHEMA public TO verirelease_app_user;
 GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA public TO verirelease_app_user;
 
 -- 7. Restrict Immutable & Protected Tables:
--- Strictly append-only: AuditLog, MilestoneSubmission, AcceptanceCriterion (NO UPDATE, NO DELETE, NO TRUNCATE)
+-- Strictly append-only: AuditLog, MilestoneSubmission, AcceptanceCriterion, PaymentReconciliation (NO UPDATE, NO DELETE, NO TRUNCATE)
 -- Protected evaluation: PolicyEvaluation allows UPDATE while IN_PROGRESS, but NEVER DELETE or TRUNCATE
 DO $$
 DECLARE
   t TEXT;
-  tbls TEXT[] := ARRAY['AuditLog', 'MilestoneSubmission', 'AcceptanceCriterion'];
+  tbls TEXT[] := ARRAY['AuditLog', 'MilestoneSubmission', 'AcceptanceCriterion', 'PaymentReconciliation'];
 BEGIN
   FOREACH t IN ARRAY tbls LOOP
     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = t) THEN
@@ -107,7 +107,7 @@ DO $$
 DECLARE
   r RECORD;
   t TEXT;
-  tbls TEXT[] := ARRAY['User', 'Contract', 'Milestone', 'AcceptanceCriterion', 'MilestoneSubmission', 'PolicyEvaluation', 'PaymentTransaction', 'AuditLog', '_migration_execution_context'];
+  tbls TEXT[] := ARRAY['User', 'Contract', 'Milestone', 'AcceptanceCriterion', 'MilestoneSubmission', 'PolicyEvaluation', 'PaymentTransaction', 'AuditLog', '_migration_execution_context', 'PaymentReconciliation'];
 BEGIN
   -- Tables
   FOREACH t IN ARRAY tbls LOOP

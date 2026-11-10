@@ -105,3 +105,78 @@ export const paymentTransactionSchema = z
       path: ["submissionId"],
     }
   );
+
+// ==========================================
+// Payment Reconciliation Types
+// ==========================================
+
+export const RECONCILIATION_DECISIONS = [
+  "CONFIRMED_SUCCEEDED",
+  "CONFIRMED_FAILED",
+  "STILL_UNCERTAIN",
+] as const;
+export type ReconciliationDecision = (typeof RECONCILIATION_DECISIONS)[number];
+export const reconciliationDecisionSchema = z.enum(RECONCILIATION_DECISIONS);
+
+export const RECONCILIATION_ACTOR_TYPES = [
+  "USER",
+  "SYSTEM_PRINCIPAL",
+  "WEBHOOK_GITHUB",
+  "WEBHOOK_PAYPAL",
+  "SYSTEM",
+] as const;
+export type ReconciliationActorType = (typeof RECONCILIATION_ACTOR_TYPES)[number];
+export const reconciliationActorTypeSchema = z.enum(RECONCILIATION_ACTOR_TYPES);
+
+export interface PaymentReconciliation {
+  id: string;
+  paymentTransactionId: string;
+  decision: ReconciliationDecision;
+  reason: string;
+  evidenceReference?: string | null;
+  evidenceType?: string | null;
+  actorType: ReconciliationActorType;
+  actorUserId?: string | null;
+  actorSystemPrincipal?: string | null;
+  createdAt: Date;
+}
+
+export const paymentReconciliationSchema = z
+  .object({
+    id: z.string().min(1),
+    paymentTransactionId: z.string().min(1),
+    decision: reconciliationDecisionSchema,
+    reason: z.string().trim().min(1, "Reconciliation reason must not be empty"),
+    evidenceReference: z.string().trim().min(1).nullable().optional(),
+    evidenceType: z.string().trim().min(1).nullable().optional(),
+    actorType: reconciliationActorTypeSchema,
+    actorUserId: z.string().trim().min(1).nullable().optional(),
+    actorSystemPrincipal: z.string().trim().min(1).nullable().optional(),
+    createdAt: z.date(),
+  })
+  .refine(
+    (rec) => {
+      // CONFIRMED_SUCCEEDED and CONFIRMED_FAILED require a non-empty evidenceReference
+      if (rec.decision === "CONFIRMED_SUCCEEDED" || rec.decision === "CONFIRMED_FAILED") {
+        return typeof rec.evidenceReference === "string" && rec.evidenceReference.trim().length > 0;
+      }
+      return true;
+    },
+    {
+      message: "CONFIRMED_SUCCEEDED and CONFIRMED_FAILED require a non-empty evidenceReference",
+      path: ["evidenceReference"],
+    }
+  )
+  .refine(
+    (rec) => {
+      if (rec.actorType === "USER") {
+        return Boolean(rec.actorUserId && !rec.actorSystemPrincipal);
+      }
+      return Boolean(!rec.actorUserId && rec.actorSystemPrincipal);
+    },
+    {
+      message:
+        "USER actor requires actorUserId and no actorSystemPrincipal; non-USER actor requires actorSystemPrincipal and no actorUserId",
+      path: ["actorType"],
+    }
+  );

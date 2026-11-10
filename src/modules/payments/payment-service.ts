@@ -24,6 +24,8 @@ import {
 } from "../common/errors";
 import type { PaymentRepository } from "./payment-repository.interface";
 import { PrismaPaymentRepository } from "./prisma-payment-repository";
+import type { ReconciliationRepository } from "./reconciliation-repository.interface";
+import { PrismaReconciliationRepository } from "./prisma-reconciliation-repository";
 import type { AuditService } from "../audit/audit-service.interface";
 import { TransactionalAuditService } from "../audit/audit-service";
 import {
@@ -40,15 +42,41 @@ import type {
   ClaimProcessingInput,
   TransitionPaymentStatusInput,
   PaymentServiceOptions,
+  ReconcilePaymentInput,
+  ReconcilePaymentResult,
+  RecoverStaleReservedInput,
+  StaleReservedRecoveryReport,
+  RecoverStaleProcessingInput,
+  StaleProcessingRecoveryReport,
 } from "./payment-service.interface";
 import type { PaymentTransaction, PaymentTxStatus } from "./types";
+import type { PaymentReconciliationService } from "./reconciliation-service.interface";
+import { PaymentReconciliationServiceImpl } from "./reconciliation-service";
+import type { PaymentRecoveryService } from "./recovery-service.interface";
+import { PaymentRecoveryServiceImpl } from "./recovery-service";
 
 export class PaymentCoordinatorService implements PaymentService {
+  private readonly reconciliationService: PaymentReconciliationService;
+  private readonly recoveryService: PaymentRecoveryService;
+
   constructor(
     private readonly paymentRepo: PaymentRepository = new PrismaPaymentRepository(prisma),
     private readonly auditService: AuditService = new TransactionalAuditService(undefined, prisma),
-    private readonly client: DbClient = prisma
-  ) {}
+    private readonly client: DbClient = prisma,
+    reconciliationRepo: ReconciliationRepository = new PrismaReconciliationRepository(prisma)
+  ) {
+    this.reconciliationService = new PaymentReconciliationServiceImpl(
+      this.paymentRepo,
+      reconciliationRepo,
+      this.auditService,
+      this.client
+    );
+    this.recoveryService = new PaymentRecoveryServiceImpl(
+      this.paymentRepo,
+      this,
+      this.client
+    );
+  }
 
   async reservePayout(
     input: ReservePayoutInput,
@@ -513,6 +541,27 @@ export class PaymentCoordinatorService implements PaymentService {
     return (this.client as PrismaClient).$transaction(runInTx, {
       isolationLevel: "ReadCommitted",
     });
+  }
+
+  async reconcilePayment(
+    input: ReconcilePaymentInput,
+    options?: PaymentServiceOptions
+  ): Promise<ReconcilePaymentResult> {
+    return this.reconciliationService.reconcilePayment(input, options);
+  }
+
+  async recoverStaleReserved(
+    input?: RecoverStaleReservedInput,
+    options?: PaymentServiceOptions
+  ): Promise<StaleReservedRecoveryReport> {
+    return this.recoveryService.recoverStaleReserved(input, options);
+  }
+
+  async recoverStaleProcessing(
+    input?: RecoverStaleProcessingInput,
+    options?: PaymentServiceOptions
+  ): Promise<StaleProcessingRecoveryReport> {
+    return this.recoveryService.recoverStaleProcessing(input, options);
   }
 
   async getTransaction(

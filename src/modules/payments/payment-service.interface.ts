@@ -11,6 +11,12 @@ import type {
   PaymentTxStatus,
 } from "./types";
 import type { AuditActorType } from "../audit/types";
+import type {
+  ReconcilePaymentInput,
+  ReconcilePaymentResult,
+} from "./reconciliation-service.interface";
+
+export type { ReconcilePaymentInput, ReconcilePaymentResult };
 
 export interface ReservePayoutInput {
   milestoneId: string;
@@ -59,6 +65,62 @@ export interface TransitionPaymentStatusInput {
   actorSystemPrincipal?: string | null;
 }
 
+export interface RecoverStaleReservedInput {
+  olderThanSeconds?: number;
+  limit?: number;
+  now?: Date;
+  correlationId?: string;
+}
+
+export interface StaleReservedRecoveryItem {
+  transactionId: string;
+  milestoneId: string;
+  submissionId: string | null;
+  idempotencyKey: string;
+  attemptNumber: number;
+  amountMinorUnits: bigint;
+  currency: string;
+  recipient: string | null;
+  claimed: boolean;
+  dispatchReady: boolean;
+  skippedReason?: string;
+  error?: string;
+}
+
+export interface StaleReservedRecoveryReport {
+  scannedCount: number;
+  claimedCount: number;
+  results: StaleReservedRecoveryItem[];
+}
+
+export interface RecoverStaleProcessingInput {
+  olderThanSeconds?: number;
+  limit?: number;
+  now?: Date;
+  reason?: string;
+  correlationId?: string;
+}
+
+export interface StaleProcessingRecoveryItem {
+  transactionId: string;
+  milestoneId: string;
+  submissionId: string | null;
+  idempotencyKey: string;
+  attemptNumber: number;
+  amountMinorUnits: bigint;
+  currency: string;
+  transitioned: boolean;
+  toStatus: "PAYOUT_UNCERTAIN";
+  skippedReason?: string;
+  error?: string;
+}
+
+export interface StaleProcessingRecoveryReport {
+  scannedCount: number;
+  transitionedCount: number;
+  results: StaleProcessingRecoveryItem[];
+}
+
 export interface PaymentServiceOptions {
   tx?: PrismaTransactionClient;
 }
@@ -89,6 +151,33 @@ export interface PaymentService {
     input: TransitionPaymentStatusInput,
     options?: PaymentServiceOptions
   ): Promise<PaymentTransaction>;
+
+  /**
+   * Evaluates an unresolved payment transaction against authoritative evidence
+   * and commits an explicit reconciliation decision (CONFIRMED_SUCCEEDED, CONFIRMED_FAILED, STILL_UNCERTAIN).
+   */
+  reconcilePayment(
+    input: ReconcilePaymentInput,
+    options?: PaymentServiceOptions
+  ): Promise<ReconcilePaymentResult>;
+
+  /**
+   * Identifies stale RESERVED transactions (> olderThanSeconds) and atomically claims them
+   * for processing, returning a dispatch-ready report with preserved original parameters.
+   */
+  recoverStaleReserved(
+    input?: RecoverStaleReservedInput,
+    options?: PaymentServiceOptions
+  ): Promise<StaleReservedRecoveryReport>;
+
+  /**
+   * Identifies stale PROCESSING transactions (> olderThanSeconds) and transitions them
+   * to PAYOUT_UNCERTAIN, preserving the active payment guard.
+   */
+  recoverStaleProcessing(
+    input?: RecoverStaleProcessingInput,
+    options?: PaymentServiceOptions
+  ): Promise<StaleProcessingRecoveryReport>;
 
   /**
    * Retrieves a payment transaction by primary ID.

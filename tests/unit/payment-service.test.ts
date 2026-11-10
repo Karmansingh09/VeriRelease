@@ -79,6 +79,8 @@ describe("PaymentCoordinatorService Unit Tests", () => {
       findActiveByMilestoneId: vi.fn().mockResolvedValue(null),
       findSucceededPayoutByMilestoneId: vi.fn().mockResolvedValue(null),
       findByMilestoneId: vi.fn().mockResolvedValue([]),
+      findStaleReserved: vi.fn().mockResolvedValue([]),
+      findStaleProcessing: vi.fn().mockResolvedValue([]),
       getNextAttemptNumber: vi.fn().mockResolvedValue(1),
     };
 

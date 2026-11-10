@@ -83,6 +83,12 @@ enum AuditActorType {
   WEBHOOK_PAYPAL
 }
 
+enum ReconciliationDecision {
+  CONFIRMED_SUCCEEDED
+  CONFIRMED_FAILED
+  STILL_UNCERTAIN
+}
+
 model User {
   id                  String                @id @db.VarChar(36)
   email               String                @unique @db.VarChar(255)
@@ -97,6 +103,7 @@ model User {
   developerContracts  Contract[]            @relation("ContractDeveloper")
   submissions         MilestoneSubmission[]
   auditLogs           AuditLog[]
+  paymentReconciliations PaymentReconciliation[]
 
   @@map("User")
 }
@@ -241,11 +248,33 @@ model PaymentTransaction {
 
   milestone           Milestone       @relation(fields: [milestoneId, currency], references: [id, currency], onDelete: Restrict, map: "fk_payment_milestone_currency")
   submission          MilestoneSubmission? @relation(fields: [submissionId, milestoneId], references: [id, milestoneId], onDelete: Restrict, map: "fk_payment_submission_milestone_scoped")
+  reconciliations     PaymentReconciliation[]
 
   @@unique([milestoneId, transactionType, attemptNumber], map: "uq_payment_attempt")
   @@index([milestoneId], map: "idx_payment_milestone")
   @@index([submissionId], map: "idx_payment_submission")
   @@map("PaymentTransaction")
+}
+
+model PaymentReconciliation {
+  id                   String                 @id @db.VarChar(36)
+  paymentTransactionId String                 @db.VarChar(36)
+  decision             ReconciliationDecision
+  reason               String                 @db.Text
+  evidenceReference    String?                @db.VarChar(500)
+  evidenceType         String?                @db.VarChar(100)
+  actorType            AuditActorType
+  actorUserId          String?                @db.VarChar(36)
+  actorSystemPrincipal String?                @db.VarChar(100)
+  createdAt            DateTime               @default(now()) @db.Timestamptz(6)
+
+  paymentTransaction   PaymentTransaction     @relation(fields: [paymentTransactionId], references: [id], onDelete: Restrict, map: "fk_reconciliation_payment")
+  actorUser            User?                  @relation(fields: [actorUserId], references: [id], onDelete: Restrict, map: "fk_reconciliation_actor_user")
+
+  @@index([paymentTransactionId], map: "idx_reconciliation_payment")
+  @@index([actorUserId], map: "idx_reconciliation_actor_user")
+  @@index([createdAt(sort: Desc)], map: "idx_reconciliation_created")
+  @@map("PaymentReconciliation")
 }
 
 model AuditLog {

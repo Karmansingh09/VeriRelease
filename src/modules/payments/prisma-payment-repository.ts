@@ -189,6 +189,40 @@ export class PrismaPaymentRepository implements PaymentRepository {
     return rows.map((r) => this.mapToDomain(r));
   }
 
+  async findStaleReserved(
+    cutoffDate: Date,
+    limit = 50,
+    options?: PaymentRepositoryOptions
+  ): Promise<PaymentTransaction[]> {
+    const db = this.getClient(options);
+    const rows = await db.paymentTransaction.findMany({
+      where: {
+        status: "RESERVED",
+        createdAt: { lte: cutoffDate },
+      },
+      orderBy: { createdAt: "asc" },
+      take: limit,
+    });
+    return rows.map((r) => this.mapToDomain(r));
+  }
+
+  async findStaleProcessing(
+    cutoffDate: Date,
+    limit = 50,
+    options?: PaymentRepositoryOptions
+  ): Promise<PaymentTransaction[]> {
+    const db = this.getClient(options);
+    const rows = await db.paymentTransaction.findMany({
+      where: {
+        status: "PROCESSING",
+        updatedAt: { lte: cutoffDate },
+      },
+      orderBy: { updatedAt: "asc" },
+      take: limit,
+    });
+    return rows.map((r) => this.mapToDomain(r));
+  }
+
   async getNextAttemptNumber(
     milestoneId: string,
     transactionType: PaymentTxType,
