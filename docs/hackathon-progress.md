@@ -13,8 +13,8 @@
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **M1 & M2** | Domain Foundation, DB Schema, Repositories, Policy Engine, Audit, Payments, Recovery | **COMPLETED** | `f0cef45` | Pushed | 412/412 |
 | **M3 & M3.1** | GitHub App, Evidence Ingestion, OAuth 2.0 PKCE, Session Delivery, CSRF Immunity | **COMPLETED** | `a262ab5` | **Pushed to origin/main** | 488/488 |
-| **M4** | Contract & Milestone Lifecycle API | **COMPLETED** | *In Progress* | *Pending* | 520/520 |
-| **M5** | GitHub Evidence Normalization + AI Evaluation Engine | **PENDING** | - | - | - |
+| **M4** | Contract & Milestone Lifecycle API | **COMPLETED** | `b70299c` | **Pushed to origin/main** | 520/520 |
+| **M5** | GitHub Evidence Normalization + AI Evaluation Engine | **COMPLETED** | *In Progress* | *Pending* | 531/531 |
 | **M6** | PayPal Sandbox Payment Integration (Order + Capture + Idempotency) | **PENDING** | - | - | - |
 | **M7** | Complete Frontend Workspace & End-to-End Product | **PENDING** | - | - | - |
 | **M8** | Integration Verification, Deployment Guide & Submission Package | **PENDING** | - | - | - |
