@@ -154,6 +154,34 @@ export class PrismaContractRepository implements ContractRepository {
     };
   }
 
+  async findByParticipant(
+    userId: string,
+    options?: ContractRepositoryOptions
+  ): Promise<Contract[]> {
+    const db = this.getClient(options);
+    const rows = await db.contract.findMany({
+      where: {
+        OR: [{ clientId: userId }, { developerId: userId }],
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return rows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      description: row.description,
+      clientId: row.clientId,
+      developerId: row.developerId,
+      status: row.status as ContractStatus,
+      totalAmountMinorUnits: BigInt(row.totalAmountMinorUnits),
+      currency: row.currency as SupportedCurrency,
+      githubRepoOwner: row.githubRepoOwner,
+      githubRepoName: row.githubRepoName,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    }));
+  }
+
   async updateStatus(
     id: string,
     status: ContractStatus,

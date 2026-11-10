@@ -45,6 +45,14 @@ export interface ContractRepository {
   ): Promise<(Contract & { milestones: Milestone[] }) | null>;
 
   /**
+   * Retrieves all contracts where the user is either the client or developer.
+   */
+  findByParticipant(
+    userId: string,
+    options?: ContractRepositoryOptions
+  ): Promise<Contract[]>;
+
+  /**
    * Updates contract status.
    */
   updateStatus(
