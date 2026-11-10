@@ -18,6 +18,10 @@ export const AUDIT_ENTITY_TYPES = [
   "CRITERIA",
   "SUBMISSION",
   "POLICY_EVALUATION",
+  "GITHUB_REPOSITORY",
+  "GITHUB_DELIVERY",
+  "EVIDENCE_SNAPSHOT",
+  "USER",
 ] as const;
 export type AuditEntityType = (typeof AUDIT_ENTITY_TYPES)[number];
 export const auditEntityTypeSchema = z.enum(AUDIT_ENTITY_TYPES);

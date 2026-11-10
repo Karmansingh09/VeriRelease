@@ -68,12 +68,12 @@ GRANT USAGE ON SCHEMA public TO verirelease_app_user;
 GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA public TO verirelease_app_user;
 
 -- 7. Restrict Immutable & Protected Tables:
--- Strictly append-only: AuditLog, MilestoneSubmission, AcceptanceCriterion, PaymentReconciliation (NO UPDATE, NO DELETE, NO TRUNCATE)
+-- Strictly append-only: AuditLog, MilestoneSubmission, AcceptanceCriterion, PaymentReconciliation, GitHubEvidenceSnapshot (NO UPDATE, NO DELETE, NO TRUNCATE)
 -- Protected evaluation: PolicyEvaluation allows UPDATE while IN_PROGRESS, but NEVER DELETE or TRUNCATE
 DO $$
 DECLARE
   t TEXT;
-  tbls TEXT[] := ARRAY['AuditLog', 'MilestoneSubmission', 'AcceptanceCriterion', 'PaymentReconciliation'];
+  tbls TEXT[] := ARRAY['AuditLog', 'MilestoneSubmission', 'AcceptanceCriterion', 'PaymentReconciliation', 'GitHubEvidenceSnapshot'];
 BEGIN
   FOREACH t IN ARRAY tbls LOOP
     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = t) THEN
@@ -88,6 +88,11 @@ BEGIN
   -- Migration evidence: _migration_execution_context is strictly inaccessible to runtime role (REVOKE ALL)
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = '_migration_execution_context') THEN
     REVOKE ALL ON public."_migration_execution_context" FROM verirelease_app_user;
+  END IF;
+
+  -- Allow deletion of expired OAuth transactions
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'OAuthTransaction') THEN
+    EXECUTE 'GRANT DELETE ON public."OAuthTransaction" TO verirelease_app_user';
   END IF;
 END
 $$;
@@ -107,7 +112,7 @@ DO $$
 DECLARE
   r RECORD;
   t TEXT;
-  tbls TEXT[] := ARRAY['User', 'Contract', 'Milestone', 'AcceptanceCriterion', 'MilestoneSubmission', 'PolicyEvaluation', 'PaymentTransaction', 'AuditLog', '_migration_execution_context', 'PaymentReconciliation'];
+  tbls TEXT[] := ARRAY['User', 'Contract', 'Milestone', 'AcceptanceCriterion', 'MilestoneSubmission', 'PolicyEvaluation', 'PaymentTransaction', 'AuditLog', '_migration_execution_context', 'PaymentReconciliation', 'GitHubRepository', 'GitHubWebhookDelivery', 'GitHubEvidenceSnapshot'];
 BEGIN
   -- Tables
   FOREACH t IN ARRAY tbls LOOP

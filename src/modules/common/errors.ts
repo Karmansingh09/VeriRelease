@@ -119,3 +119,77 @@ export class DuplicatePayoutError extends DomainError {
     super(message);
   }
 }
+
+/**
+ * Thrown when an actor is unauthenticated (missing or invalid credentials).
+ */
+export class DomainUnauthorizedError extends DomainError {
+  public override readonly code = "DOMAIN_UNAUTHORIZED" as const;
+
+  constructor(message: string = "Authentication is required to access this resource.") {
+    super(message);
+  }
+}
+
+/**
+ * Thrown when an actor is authenticated but forbidden from accessing a resource.
+ */
+export class DomainForbiddenError extends DomainError {
+  public override readonly code = "DOMAIN_FORBIDDEN" as const;
+
+  constructor(message: string = "Access to the requested resource is forbidden.") {
+    super(message);
+  }
+}
+
+/**
+ * Thrown when an identity, resource, or state conflict occurs (e.g. duplicate identity claiming).
+ */
+export class DomainConflictError extends DomainError {
+  public override readonly code = "DOMAIN_CONFLICT" as const;
+
+  constructor(message: string = "Resource conflict occurred.") {
+    super(message);
+  }
+}
+
+/**
+ * Thrown when webhook HMAC signature verification fails or is missing.
+ */
+export class WebhookSignatureVerificationError extends DomainError {
+  public override readonly code = "WEBHOOK_SIGNATURE_VERIFICATION_FAILED" as const;
+
+  constructor(message: string = "Webhook signature verification failed.") {
+    super(message);
+  }
+}
+
+/**
+ * Thrown when GitHub API rate limit is exceeded.
+ */
+export class GitHubRateLimitError extends DomainError {
+  public override readonly code = "GITHUB_RATE_LIMIT_EXCEEDED" as const;
+
+  constructor(
+    message: string = "GitHub API rate limit exceeded.",
+    public readonly resetAt?: Date,
+    public readonly retryAfterSeconds?: number
+  ) {
+    super(message);
+  }
+}
+
+/**
+ * Thrown when an external provider (such as GitHub) is unavailable, times out, or fails.
+ */
+export class ProviderUnavailableError extends DomainError {
+  public override readonly code = "PROVIDER_UNAVAILABLE" as const;
+
+  constructor(
+    public readonly provider: string,
+    message: string,
+    public readonly statusCode?: number
+  ) {
+    super(`[${provider}] Provider unavailable: ${message}`);
+  }
+}

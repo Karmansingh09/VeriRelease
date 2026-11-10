@@ -74,6 +74,10 @@ enum AuditEntityType {
   CRITERIA
   SUBMISSION
   POLICY_EVALUATION
+  GITHUB_REPOSITORY
+  GITHUB_DELIVERY
+  EVIDENCE_SNAPSHOT
+  USER
 }
 
 enum AuditActorType {
@@ -89,6 +93,21 @@ enum ReconciliationDecision {
   STILL_UNCERTAIN
 }
 
+enum GitHubDeliveryStatus {
+  RECEIVED
+  PROCESSING
+  PROCESSED
+  FAILED
+  IGNORED
+}
+
+enum GitHubCheckStatus {
+  PENDING
+  SUCCESS
+  FAILURE
+  UNAVAILABLE
+}
+
 model User {
   id                  String                @id @db.VarChar(36)
   email               String                @unique @db.VarChar(255)
@@ -97,6 +116,10 @@ model User {
   paypalPayerId       String?               @db.VarChar(100)
   paypalReceiverEmail String?               @db.VarChar(255)
   githubUsername      String?               @db.VarChar(100)
+  githubId            String?               @db.VarChar(100)
+  isActive            Boolean               @default(true)
+  tokenVersion        Int                   @default(1) @db.Integer
+  suspendedAt         DateTime?             @db.Timestamptz(6)
   createdAt           DateTime              @default(now()) @db.Timestamptz(6)
   updatedAt           DateTime              @default(now()) @updatedAt @db.Timestamptz(6)
   clientContracts     Contract[]            @relation("ContractClient")
@@ -119,11 +142,13 @@ model Contract {
   currency              String      @default("USD") @db.VarChar(3)
   githubRepoOwner       String      @db.VarChar(100)
   githubRepoName        String      @db.VarChar(100)
+  githubRepoId          BigInt?     @db.BigInt
   createdAt             DateTime    @default(now()) @db.Timestamptz(6)
   updatedAt             DateTime    @default(now()) @updatedAt @db.Timestamptz(6)
 
   client                User        @relation("ContractClient", fields: [clientId], references: [id], onDelete: Restrict)
   developer             User        @relation("ContractDeveloper", fields: [developerId], references: [id], onDelete: Restrict)
+  githubRepo            GitHubRepository? @relation(fields: [githubRepoId], references: [repoId], onDelete: Restrict)
   milestones            Milestone[]
 
   @@unique([id, currency], map: "uq_contract_id_currency")
@@ -193,6 +218,7 @@ model MilestoneSubmission {
   submittedBy         User                 @relation(fields: [submittedById], references: [id], onDelete: Restrict)
   policyEvaluations   PolicyEvaluation[]
   paymentTransactions PaymentTransaction[]
+  evidenceSnapshots   GitHubEvidenceSnapshot[]
 
   @@unique([milestoneId, submissionNumber], map: "uq_milestone_submission_number")
   @@unique([id, milestoneId, criteriaHash], map: "uq_submission_milestone_hash")
@@ -298,6 +324,104 @@ model AuditLog {
   @@index([correlationId], map: "idx_audit_correlation")
   @@index([actorUserId], map: "idx_audit_user")
   @@map("AuditLog")
+}
+
+model GitHubRepository {
+  id             String     @id @db.VarChar(36)
+  repoId         BigInt     @unique @db.BigInt
+  owner          String     @db.VarChar(100)
+  name           String     @db.VarChar(100)
+  fullName       String     @db.VarChar(200)
+  installationId BigInt?    @db.BigInt
+  isPrivate      Boolean    @default(false)
+  defaultBranch  String     @default("main") @db.VarChar(100)
+  htmlUrl        String     @db.VarChar(500)
+  description    String?    @db.Text
+  createdAt      DateTime   @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime   @default(now()) @updatedAt @db.Timestamptz(6)
+
+  contracts      Contract[]
+
+  @@index([owner, name], map: "idx_github_repo_owner_name")
+  @@map("GitHubRepository")
+}
+
+model GitHubWebhookDelivery {
+  id           String               @id @db.VarChar(36)
+  deliveryId   String               @unique @db.VarChar(64)
+  eventType    String               @db.VarChar(50)
+  action       String?              @db.VarChar(50)
+  status       GitHubDeliveryStatus @default(RECEIVED)
+  repositoryId BigInt?              @db.BigInt
+  payload      Json                 @db.JsonB
+  payloadHash  String               @db.VarChar(64)
+  errorMessage String?              @db.Text
+  processedAt  DateTime?            @db.Timestamptz(6)
+  createdAt    DateTime             @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime             @default(now()) @updatedAt @db.Timestamptz(6)
+
+  @@index([status], map: "idx_github_delivery_status")
+  @@index([repositoryId], map: "idx_github_delivery_repo")
+  @@index([createdAt(sort: Desc)], map: "idx_github_delivery_created")
+  @@map("GitHubWebhookDelivery")
+}
+
+model GitHubEvidenceSnapshot {
+  id              String            @id @db.VarChar(36)
+  submissionId    String            @db.VarChar(36)
+  milestoneId     String            @db.VarChar(36)
+  snapshotVersion Int               @default(1) @db.Integer
+  repositoryId    BigInt            @db.BigInt
+  repoOwner       String            @db.VarChar(100)
+  repoName        String            @db.VarChar(100)
+  prNumber        Int               @db.Integer
+  prId            BigInt?           @db.BigInt
+  prUrl           String            @db.VarChar(1000)
+  prTitle         String            @db.VarChar(500)
+  prBody          String?           @db.Text
+  prAuthor        String            @db.VarChar(100)
+  prAuthorId      BigInt?           @db.BigInt
+  prState         String            @db.VarChar(50)
+  isMerged        Boolean           @default(false)
+  mergedAt        DateTime?         @db.Timestamptz(6)
+  mergeCommitSha  String?           @db.VarChar(40)
+  headBranch      String            @db.VarChar(200)
+  headCommitSha   String            @db.VarChar(40)
+  baseBranch      String            @db.VarChar(200)
+  baseCommitSha   String            @db.VarChar(40)
+  commitCount     Int               @default(0) @db.Integer
+  commits         Json              @db.JsonB
+  checks          Json              @db.JsonB
+  checksStatus    GitHubCheckStatus @default(UNAVAILABLE)
+  rawPayload      Json?             @db.JsonB
+  evidenceHash    String            @db.VarChar(64)
+  collectedAt     DateTime          @default(now()) @db.Timestamptz(6)
+  provider        String            @default("github") @db.VarChar(50)
+  apiVersion      String            @default("2022-11-28") @db.VarChar(50)
+
+  submission      MilestoneSubmission @relation(fields: [submissionId, milestoneId], references: [id, milestoneId], onDelete: Restrict, map: "fk_evidence_submission_milestone_scoped")
+
+  @@unique([submissionId, snapshotVersion], map: "uq_submission_evidence_version")
+  @@index([submissionId], map: "idx_evidence_submission")
+  @@index([milestoneId], map: "idx_evidence_milestone")
+  @@index([repositoryId], map: "idx_evidence_repo")
+  @@map("GitHubEvidenceSnapshot")
+}
+
+model OAuthTransaction {
+  id           String    @id @db.VarChar(36)
+  stateNonce   String    @unique @db.VarChar(64)
+  codeVerifier String    @db.VarChar(128)
+  action       String    @db.VarChar(20)
+  userId       String?   @db.VarChar(36)
+  returnTo     String    @db.VarChar(500)
+  expiresAt    DateTime  @db.Timestamptz(6)
+  consumedAt   DateTime? @db.Timestamptz(6)
+  createdAt    DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@index([stateNonce], map: "idx_oauth_tx_state_nonce")
+  @@index([expiresAt], map: "idx_oauth_tx_expires_at")
+  @@map("OAuthTransaction")
 }
 
 model MigrationExecutionContext {

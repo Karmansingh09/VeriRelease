@@ -28,6 +28,10 @@ describe("Database Constraints, Triggers, and Roles Integration Test Suite", () 
     await client.query(`
       SET ROLE postgres;
       TRUNCATE TABLE 
+        "OAuthTransaction",
+        "GitHubEvidenceSnapshot",
+        "GitHubWebhookDelivery",
+        "GitHubRepository",
         "PaymentReconciliation",
         "AuditLog", 
         "PaymentTransaction", 

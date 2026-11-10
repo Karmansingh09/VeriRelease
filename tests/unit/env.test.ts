@@ -7,7 +7,13 @@ describe("Environment Configuration & Validation", () => {
     NEXT_PUBLIC_APP_URL: "https://verirelease.example.com",
     DATABASE_URL: "postgresql://app_user:StrongSecret123!@db.example.com:5432/verirelease_prod?schema=public",
     GITHUB_WEBHOOK_SECRET: "c2e4f6a8b0d2e4f6a8b0d2e4f6a8b0d2", // >= 16 chars, no placeholder
+    AUTH_TOKEN_SIGNING_SECRET: "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4_independent_auth_secret", // >= 32 chars, independent
+    GITHUB_APP_ID: "123456",
+    GITHUB_PRIVATE_KEY: "-----BEGIN RSA PRIVATE KEY-----\nMIIE...\n-----END RSA PRIVATE KEY-----",
     GITHUB_ACCESS_TOKEN: "ghp_validAccessTokenExample1234567890",
+    GITHUB_OAUTH_CLIENT_ID: "github_oauth_client_id_prod_12345",
+    GITHUB_OAUTH_CLIENT_SECRET: "b1c2d3e4f5a6b1c2d3e4f5a6b1c2d3e4_oauth_secret",
+    GITHUB_OAUTH_CALLBACK_URL: "https://verirelease.example.com/api/auth/github/callback",
     OPENAI_API_KEY: "sk-proj-RealApiKeyFormatExample1234567890abcdef",
     OPENAI_MODEL: "gpt-4o-2024-08-06",
     PAYPAL_MODE: "sandbox",
@@ -158,6 +164,54 @@ describe("Environment Configuration & Validation", () => {
       };
 
       expect(() => validateEnv(invalid)).toThrowError(/NODE_ENV/);
+    });
+
+    it("rejects production configuration when GITHUB_OAUTH_CLIENT_ID is missing or placeholder", () => {
+      const missing = { ...validProductionEnv, GITHUB_OAUTH_CLIENT_ID: "" };
+      expect(() => validateEnv(missing)).toThrowError(/GITHUB_OAUTH_CLIENT_ID is required/);
+
+      const placeholder = { ...validProductionEnv, GITHUB_OAUTH_CLIENT_ID: "your_oauth_client_id" };
+      expect(() => validateEnv(placeholder)).toThrowError(/placeholder/);
+    });
+
+    it("rejects production configuration when GITHUB_OAUTH_CLIENT_SECRET is missing or too short", () => {
+      const missing = { ...validProductionEnv, GITHUB_OAUTH_CLIENT_SECRET: "" };
+      expect(() => validateEnv(missing)).toThrowError(/GITHUB_OAUTH_CLIENT_SECRET must be at least 16 characters/);
+
+      const short = { ...validProductionEnv, GITHUB_OAUTH_CLIENT_SECRET: "short_secret" };
+      expect(() => validateEnv(short)).toThrowError(/at least 16 characters/);
+    });
+
+    it("rejects production configuration when GITHUB_OAUTH_CALLBACK_URL is not HTTPS", () => {
+      const httpCallback = {
+        ...validProductionEnv,
+        GITHUB_OAUTH_CALLBACK_URL: "http://verirelease.example.com/api/auth/github/callback",
+      };
+      expect(() => validateEnv(httpCallback)).toThrowError(/HTTPS in production/);
+    });
+
+    it("rejects configuration when AUTH_TOKEN_SIGNING_SECRET reuses GITHUB_OAUTH_CLIENT_SECRET", () => {
+      const reused = {
+        ...validProductionEnv,
+        GITHUB_OAUTH_CLIENT_SECRET: validProductionEnv.AUTH_TOKEN_SIGNING_SECRET,
+      };
+      expect(() => validateEnv(reused)).toThrowError(/AUTH_TOKEN_SIGNING_SECRET must not reuse GITHUB_OAUTH_CLIENT_SECRET/);
+    });
+
+    it("rejects configuration when GITHUB_OAUTH_CLIENT_SECRET reuses GITHUB_WEBHOOK_SECRET", () => {
+      const reused = {
+        ...validProductionEnv,
+        GITHUB_OAUTH_CLIENT_SECRET: validProductionEnv.GITHUB_WEBHOOK_SECRET,
+      };
+      expect(() => validateEnv(reused)).toThrowError(/GITHUB_OAUTH_CLIENT_SECRET must not reuse GITHUB_WEBHOOK_SECRET/);
+    });
+
+    it("rejects configuration when GITHUB_OAUTH_CLIENT_ID reuses numeric GITHUB_APP_ID", () => {
+      const reused = {
+        ...validProductionEnv,
+        GITHUB_OAUTH_CLIENT_ID: validProductionEnv.GITHUB_APP_ID,
+      };
+      expect(() => validateEnv(reused)).toThrowError(/GITHUB_OAUTH_CLIENT_ID must not reuse numeric GITHUB_APP_ID/);
     });
   });
 });
