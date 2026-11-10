@@ -131,3 +131,19 @@ export function generatePayoutIdempotencyKey(
 export function isValidIdempotencyKey(key: string): boolean {
   return /^[0-9a-f]{64}$/.test(key);
 }
+
+/**
+ * Safely extracts and normalizes the recipient email from persisted request payload.
+ */
+export function extractPersistedRecipient(
+  rawRequest: Record<string, unknown> | null | undefined
+): string | null {
+  if (!rawRequest || typeof rawRequest !== "object") {
+    return null;
+  }
+  const data = rawRequest as Record<string, unknown>;
+  if (typeof data.recipient === "string" && data.recipient.trim().length > 0) {
+    return data.recipient.trim().toLowerCase();
+  }
+  return null;
+}
