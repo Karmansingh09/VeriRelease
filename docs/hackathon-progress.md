@@ -16,8 +16,8 @@
 | **M4** | Contract & Milestone Lifecycle API | **COMPLETED** | `b70299c` | **Pushed to origin/main** | 520/520 |
 | **M5** | GitHub Evidence Normalization + AI Evaluation Engine | **COMPLETED** | `02da505` | **Pushed to origin/main** | 531/531 |
 | **M6** | PayPal Sandbox Payment Integration (Order + Capture + Idempotency) | **COMPLETED** | `cf72794` | **Pushed to origin/main** | 544/544 |
-| **M7** | Complete Frontend Workspace & End-to-End Product | **COMPLETED** | _pending_ | Pending Push | 548/548 |
-| **M8** | Integration Verification, Deployment Guide & Submission Package | **IN PROGRESS** | - | - | - |
+| **M7** | Complete Frontend Workspace & End-to-End Product | **COMPLETED** | `f4a0765` | **Pushed to origin/main** | 548/548 |
+| **M8** | Integration Verification, Deployment Guide & Submission Package | **COMPLETED** | _final_ | Pushing to `origin/main` | 555/555 |
 
 ---
 
@@ -43,3 +43,7 @@
 ### Milestone 7: Complete Frontend Workspace & End-to-End Product
 - **Scope:** Landing page (`/`), Dashboard (`/dashboard`), Contract Manager (`/contracts/[id]`), Milestone Verification & PayPal Payout Workspace (`/milestones/[id]`), `Navbar`, `AuthGate`, `StatusBadge`, `useSession`, typed `apiFetch` client, `GET /api/system/status`, `POST /api/auth/demo-login`.
 - **Verification:** 548 tests across 39 test files passing (118 PostgreSQL integration, 430 unit), clean `tsc --noEmit`, clean ESLint, clean `next build`.
+
+### Milestone 8: Integration Verification, Deployment Guide & Submission Package
+- **Scope:** 7-scenario live PostgreSQL end-to-end & failure matrix (`tests/integration/full-hackathon-e2e.test.ts`), complete `README.md` setup/env/deployment guide, and hackathon submission deliverables (`docs/submission/presentation.md`, `docs/submission/demo-script.md`, `docs/submission/checklist.md`).
+- **Verification:** 555 tests across 40 test files passing (125 PostgreSQL integration, 430 unit), clean `tsc --noEmit`, clean ESLint, clean `next build`, valid Prisma schema.
