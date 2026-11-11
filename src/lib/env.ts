@@ -117,6 +117,7 @@ export const createEnvSchema = (nodeEnv: string = process.env.NODE_ENV ?? "devel
 
       // PayPal Sandbox / Live
       PAYPAL_MODE: z.enum(["sandbox", "live"]).default("sandbox"),
+      PAYPAL_BASE_URL: z.string().url().default("https://api-m.sandbox.paypal.com"),
 
       PAYPAL_CLIENT_ID: isProduction
         ? z
