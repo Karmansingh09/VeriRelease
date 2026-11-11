@@ -1134,4 +1134,302 @@ describe("GitHubOAuthService Unit Test Suite", () => {
       );
     });
   });
+
+  describe("OAuth State Action & User Binding Regression Suite (Callback Bug Fix)", () => {
+    it("1. fresh unauthenticated login creates state without userId", async () => {
+      const result = await oauthService.generateAuthorizationUrl({ action: "login" });
+      const payload = oauthService.verifyStateToken(result.stateToken);
+
+      expect(payload.action).toBe("login");
+      expect(payload.userId).toBeUndefined();
+
+      const storedTx = mockTransactionStore.get(payload.nonce);
+      expect(storedTx).toBeDefined();
+      expect(storedTx?.action).toBe("login");
+      expect(storedTx?.userId).toBeNull();
+
+      // Calling with action='login' and an authenticatedUserId must fail fast with DomainValidationError
+      await expect(
+        oauthService.generateAuthorizationUrl({ action: "login", authenticatedUserId: "usr_attacker" })
+      ).rejects.toThrow(DomainValidationError);
+    });
+
+    it("2. login callback accepts valid login state", async () => {
+      const { stateToken } = await oauthService.generateAuthorizationUrl({ action: "login" });
+
+      (mockOAuthClient.exchangeCode as any).mockResolvedValueOnce({
+        accessToken: "gho_mock_token_login",
+      });
+
+      (mockOAuthClient.getUserProfile as any).mockResolvedValueOnce({
+        id: 998877,
+        login: "valid_login_user",
+        name: "Valid User",
+        email: "valid_login@example.com",
+      });
+
+      mockPrisma.user.findFirst.mockResolvedValueOnce(null);
+      mockPrisma.user.findUnique.mockResolvedValueOnce(null);
+      mockPrisma.user.create.mockResolvedValueOnce({
+        id: "usr_new_valid",
+        email: "valid_login@example.com",
+        name: "Valid User",
+        role: "DEVELOPER",
+        githubUsername: "valid_login_user",
+        githubId: "998877",
+        isActive: true,
+        tokenVersion: 1,
+      });
+
+      const result = await oauthService.handleCallback({
+        code: "valid_code_login",
+        state: stateToken,
+        cookieState: stateToken,
+      });
+
+      expect(result.user.githubUsername).toBe("valid_login_user");
+      expect(result.sessionCookieHeader).toContain("vr_session=");
+      expect(result.clearStateCookieHeader).toContain("vr_oauth_state=");
+    });
+
+    it("3. login callback rejects link state when invoked without an authenticated session", async () => {
+      const { stateToken } = await oauthService.generateAuthorizationUrl({
+        action: "link",
+        authenticatedUserId: "usr_alice",
+      });
+
+      await expect(
+        oauthService.handleCallback({
+          code: "test_code",
+          state: stateToken,
+          cookieState: stateToken,
+          currentAuthenticatedUser: null,
+        })
+      ).rejects.toThrow(DomainUnauthorizedError);
+    });
+
+    it("4. account linking requires authenticated session", async () => {
+      await expect(
+        oauthService.generateAuthorizationUrl({ action: "link" })
+      ).rejects.toThrow(DomainUnauthorizedError);
+
+      await expect(
+        oauthService.generateAuthorizationUrl({ action: "link", authenticatedUserId: "   " })
+      ).rejects.toThrow(DomainUnauthorizedError);
+    });
+
+    it("5. account linking rejects a mismatched target userId", async () => {
+      const { stateToken } = await oauthService.generateAuthorizationUrl({
+        action: "link",
+        authenticatedUserId: "usr_alice",
+      });
+
+      await expect(
+        oauthService.handleCallback({
+          code: "test_code",
+          state: stateToken,
+          cookieState: stateToken,
+          currentAuthenticatedUser: {
+            id: "usr_bob_imposter",
+            email: "bob@test.com",
+            name: "Bob",
+            role: "DEVELOPER",
+            isActive: true,
+            tokenVersion: 1,
+          },
+        })
+      ).rejects.toThrow(DomainForbiddenError);
+    });
+
+    it("6. account linking rejects an expired or revoked session", async () => {
+      const { stateToken } = await oauthService.generateAuthorizationUrl({
+        action: "link",
+        authenticatedUserId: "usr_alice",
+      });
+
+      (mockOAuthClient.exchangeCode as any).mockResolvedValueOnce({
+        accessToken: "gho_mock_token_revoked",
+      });
+
+      (mockOAuthClient.getUserProfile as any).mockResolvedValueOnce({
+        id: 11111,
+        login: "alice_gh",
+        name: "Alice",
+        email: "alice@test.com",
+      });
+
+      mockPrisma.user.findFirst.mockResolvedValueOnce(null);
+      // DB user has tokenVersion: 2 (revoked older sessions)
+      mockPrisma.user.findUnique.mockResolvedValueOnce({
+        id: "usr_alice",
+        email: "alice@test.com",
+        name: "Alice",
+        role: "DEVELOPER",
+        githubUsername: null,
+        githubId: null,
+        isActive: true,
+        suspendedAt: null,
+        tokenVersion: 2,
+      });
+
+      // Calling session presents stale tokenVersion: 1
+      await expect(
+        oauthService.handleCallback({
+          code: "test_code",
+          state: stateToken,
+          cookieState: stateToken,
+          currentAuthenticatedUser: {
+            id: "usr_alice",
+            email: "alice@test.com",
+            name: "Alice",
+            role: "DEVELOPER",
+            isActive: true,
+            tokenVersion: 1,
+          },
+        })
+      ).rejects.toThrow(/revoked via token version increment/i);
+    });
+
+    it("7. OAuth state cannot be replayed (single-use atomic consumption)", async () => {
+      const { stateToken } = await oauthService.generateAuthorizationUrl({ action: "login" });
+
+      (mockOAuthClient.exchangeCode as any).mockResolvedValue({
+        accessToken: "gho_mock_token_replay",
+      });
+
+      (mockOAuthClient.getUserProfile as any).mockResolvedValue({
+        id: 778899,
+        login: "replay_test_user",
+        name: "Replay Test",
+        email: "replay@test.com",
+      });
+
+      mockPrisma.user.findFirst.mockResolvedValue(null);
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+      mockPrisma.user.create.mockResolvedValue({
+        id: "usr_replay",
+        email: "replay@test.com",
+        name: "Replay Test",
+        role: "DEVELOPER",
+        githubUsername: "replay_test_user",
+        githubId: "778899",
+        isActive: true,
+        tokenVersion: 1,
+      });
+
+      // First callback consumes the transaction
+      const first = await oauthService.handleCallback({
+        code: "code_1",
+        state: stateToken,
+        cookieState: stateToken,
+      });
+      expect(first.user.id).toBe("usr_replay");
+
+      // Replaying the exact same state must fail with DomainUnauthorizedError
+      await expect(
+        oauthService.handleCallback({
+          code: "code_replay",
+          state: stateToken,
+          cookieState: stateToken,
+        })
+      ).rejects.toThrow(DomainUnauthorizedError);
+    });
+
+    it("8. invalid state is rejected", async () => {
+      // Tampered state
+      await expect(
+        oauthService.handleCallback({
+          code: "code",
+          state: "vr_state.invalid.signature",
+          cookieState: "vr_state.invalid.signature",
+        })
+      ).rejects.toThrow(DomainUnauthorizedError);
+
+      // State token with mismatched cookie
+      const { stateToken } = await oauthService.generateAuthorizationUrl({ action: "login" });
+      await expect(
+        oauthService.handleCallback({
+          code: "code",
+          state: stateToken,
+          cookieState: "vr_state.other.cookie",
+        })
+      ).rejects.toThrow(DomainUnauthorizedError);
+    });
+
+    it("9. PKCE verifier remains server-side", async () => {
+      const result = await oauthService.generateAuthorizationUrl({ action: "login" });
+      const payload = oauthService.verifyStateToken(result.stateToken);
+      const storedTx = mockTransactionStore.get(payload.nonce);
+
+      expect(storedTx).toBeDefined();
+      expect(storedTx?.codeVerifier).toBeDefined();
+
+      // Authorization URL must NOT contain code_verifier
+      expect(result.authorizationUrl).not.toContain(storedTx!.codeVerifier);
+      expect(result.authorizationUrl).toContain("code_challenge=");
+
+      // State token must NOT contain code_verifier
+      expect(result.stateToken).not.toContain(storedTx!.codeVerifier);
+      expect((payload as any).codeVerifier).toBeUndefined();
+    });
+
+    it("10. preserves existing ownership and identity conflict protections", async () => {
+      const { stateToken } = await oauthService.generateAuthorizationUrl({
+        action: "link",
+        authenticatedUserId: "usr_alice",
+      });
+
+      (mockOAuthClient.exchangeCode as any).mockResolvedValueOnce({
+        accessToken: "gho_mock_token_conflict",
+      });
+
+      (mockOAuthClient.getUserProfile as any).mockResolvedValueOnce({
+        id: 445566,
+        login: "conflict_user",
+        name: "Conflict User",
+        email: "conflict@test.com",
+      });
+
+      // Target user exists
+      mockPrisma.user.findUnique.mockResolvedValueOnce({
+        id: "usr_alice",
+        email: "alice@test.com",
+        name: "Alice",
+        role: "DEVELOPER",
+        githubUsername: null,
+        githubId: null,
+        isActive: true,
+        suspendedAt: null,
+        tokenVersion: 1,
+      });
+
+      // Conflicting user already has this GitHub account linked
+      mockPrisma.user.findFirst.mockResolvedValueOnce({
+        id: "usr_other_bob",
+        email: "bob@test.com",
+        name: "Bob",
+        role: "DEVELOPER",
+        githubUsername: "conflict_user",
+        githubId: "445566",
+        isActive: true,
+        tokenVersion: 1,
+      });
+
+      await expect(
+        oauthService.handleCallback({
+          code: "test_code",
+          state: stateToken,
+          cookieState: stateToken,
+          currentAuthenticatedUser: {
+            id: "usr_alice",
+            email: "alice@test.com",
+            name: "Alice",
+            role: "DEVELOPER",
+            isActive: true,
+            tokenVersion: 1,
+          },
+        })
+      ).rejects.toThrow(/already linked to another VeriRelease user/i);
+    });
+  });
 });

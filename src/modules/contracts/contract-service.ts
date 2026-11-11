@@ -549,6 +549,10 @@ export class ContractService {
     callerId: string,
     dto: SubmitMilestoneDto
   ): Promise<MilestoneSubmission> {
+    if (dto.prUrl.includes("/issues/")) {
+      throw new DomainValidationError("Pull request URL cannot be an issues URL");
+    }
+
     const milestone = await this.client.milestone.findUnique({
       where: { id: milestoneId },
       include: { contract: true },
@@ -677,6 +681,12 @@ export class ContractService {
         },
         submissions: {
           orderBy: { submissionNumber: "desc" },
+          include: {
+            evidenceSnapshots: {
+              orderBy: { snapshotVersion: "desc" },
+              take: 1,
+            },
+          },
         },
       },
     });
@@ -753,20 +763,26 @@ export class ContractService {
         isMandatory: c.isMandatory,
         createdAt: c.createdAt,
       })),
-      submissions: m.submissions.map((s) => ({
-        id: s.id,
-        milestoneId: s.milestoneId,
-        submissionNumber: s.submissionNumber,
-        prNumber: s.prNumber,
-        prCommitSha: s.prCommitSha,
-        prUrl: s.prUrl,
-        criteriaVersion: s.criteriaVersion,
-        criteriaSnapshot: s.criteriaSnapshot as unknown as CriteriaSnapshotItem[],
-        criteriaHash: s.criteriaHash,
-        status: s.status as SubmissionStatus,
-        submittedById: s.submittedById,
-        submittedAt: s.submittedAt,
-      })),
+      submissions: m.submissions.map((s) => {
+        const latestEvidence = s.evidenceSnapshots?.[0] ?? null;
+        const verifiedPrUrl = latestEvidence ? latestEvidence.prUrl : null;
+        return {
+          id: s.id,
+          milestoneId: s.milestoneId,
+          submissionNumber: s.submissionNumber,
+          prNumber: s.prNumber,
+          prCommitSha: s.prCommitSha,
+          prUrl: s.prUrl,
+          verifiedPrUrl,
+          isVerified: Boolean(verifiedPrUrl),
+          criteriaVersion: s.criteriaVersion,
+          criteriaSnapshot: s.criteriaSnapshot as unknown as CriteriaSnapshotItem[],
+          criteriaHash: s.criteriaHash,
+          status: s.status as SubmissionStatus,
+          submittedById: s.submittedById,
+          submittedAt: s.submittedAt,
+        };
+      }),
       auditTimeline: auditLogs.map((log) => ({
         id: log.id,
         action: log.action,

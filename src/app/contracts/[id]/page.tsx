@@ -195,12 +195,17 @@ export default function ContractDetailPage(): React.ReactElement {
   const isClient = Boolean(user && contract && contract.clientId === user.id);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
+    <div className="min-h-screen bg-[#090B0A] text-[#F1F0E8] relative selection:bg-[#C6F36A]/20 selection:text-[#C6F36A]">
+      <div className="pointer-events-none fixed inset-0 bg-terminal-grid opacity-40 z-0" />
       <Navbar user={user} systemStatus={systemStatus} onUserUpdated={setUser} />
 
       {sessionLoading ? (
-        <div className="mx-auto max-w-6xl px-6 py-20 text-center text-sm text-slate-400">
-          Loading session...
+        <div className="mx-auto max-w-6xl px-6 py-28 text-center text-xs font-mono text-[#858F87] flex items-center justify-center gap-2">
+          <svg className="animate-spin h-4 w-4 text-[#C6F36A]" viewBox="0 0 24 24" fill="none">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+          </svg>
+          <span>VERIFYING CONTRACT SESSION...</span>
         </div>
       ) : !user ? (
         <AuthGate
@@ -209,83 +214,89 @@ export default function ContractDetailPage(): React.ReactElement {
           returnTo={`/contracts/${contractId}`}
         />
       ) : loading && !contract ? (
-        <div className="mx-auto max-w-6xl px-6 py-20 text-center text-sm text-slate-400">
-          Loading contract details...
+        <div className="mx-auto max-w-6xl px-6 py-28 text-center text-xs font-mono text-[#858F87]">
+          LOADING CONTRACT TOPOLOGY...
         </div>
       ) : !contract ? (
-        <div className="mx-auto max-w-4xl px-6 py-16 text-center space-y-4">
-          <div className="rounded-xl border border-rose-800 bg-rose-950/50 p-6 text-sm text-rose-200">
+        <div className="mx-auto max-w-4xl px-6 py-20 text-center space-y-4">
+          <div className="rounded-2xl border border-[#E77D70]/40 bg-[#E77D70]/10 p-6 text-xs text-[#E77D70]">
             {error ?? "Contract not found or access denied."}
           </div>
-          <Link href="/dashboard" className="text-xs text-sky-400 hover:underline">
-            &larr; Back to Workspace
+          <Link href="/dashboard" className="text-xs font-mono text-[#C6F36A] hover:underline">
+            ← Return to Workspace
           </Link>
         </div>
       ) : (
-        <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 space-y-7">
-          <div className="flex items-center justify-between text-xs text-slate-400">
-            <Link href="/dashboard" className="hover:text-white transition-colors">
-              &larr; Back to Workspace
+        <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 space-y-7 relative z-10">
+          <div className="flex items-center justify-between text-xs text-[#858F87]">
+            <Link href="/dashboard" className="hover:text-[#F1F0E8] font-mono transition-colors flex items-center gap-1">
+              <span>← Back to Workspace</span>
             </Link>
-            <span className="font-mono text-slate-500">Contract ID: {contract.id}</span>
+            <span className="font-mono text-[11px] text-[#858F87]">Contract ID: {contract.id}</span>
           </div>
 
           {error && (
-            <div className="rounded-xl border border-rose-800 bg-rose-950/50 px-4 py-3 text-xs text-rose-200">
-              {error}
+            <div className="rounded-xl border border-[#E77D70]/40 bg-[#E77D70]/10 px-4 py-3 text-xs text-[#E77D70] flex items-center gap-2">
+              <svg className="w-4 h-4 text-[#E77D70] shrink-0" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
+              </svg>
+              <span>{error}</span>
             </div>
           )}
           {notice && (
-            <div className="rounded-xl border border-emerald-800 bg-emerald-950/50 px-4 py-3 text-xs text-emerald-200">
-              {notice}
+            <div className="rounded-xl border border-[#8FE0A5]/40 bg-[#8FE0A5]/10 px-4 py-3 text-xs text-[#8FE0A5] flex items-center gap-2">
+              <svg className="w-4 h-4 text-[#8FE0A5] shrink-0" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z" />
+              </svg>
+              <span>{notice}</span>
             </div>
           )}
 
           {/* Contract Overview Card */}
-          <section className="rounded-2xl border border-slate-800 bg-slate-900/75 p-6 space-y-5">
+          <section className="rounded-2xl border border-[rgba(241,240,232,0.12)] bg-[#111512] p-6 sm:p-7 space-y-6 fintech-card-hover">
             <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
               <div>
                 <div className="flex flex-wrap items-center gap-3">
-                  <h1 className="text-2xl font-bold text-white">{contract.title}</h1>
+                  <h1 className="text-2xl sm:text-3xl font-extrabold text-[#F1F0E8] tracking-tight">{contract.title}</h1>
                   <StatusBadge status={contract.status} size="md" />
                 </div>
-                <p className="mt-2 text-sm text-slate-300 max-w-3xl">{contract.description}</p>
+                <p className="mt-2 text-xs sm:text-sm text-[#B9C5B5] max-w-3xl leading-relaxed">{contract.description}</p>
               </div>
               <div className="text-left md:text-right">
-                <div className="text-xs font-mono text-slate-400">TOTAL CONTRACT VALUE</div>
-                <div className="mt-1 text-2xl font-bold font-mono text-emerald-300">
+                <div className="text-[11px] font-mono uppercase tracking-wider text-[#858F87]">TOTAL CONTRACT VALUE</div>
+                <div className="mt-1 text-2xl sm:text-3xl font-bold font-mono text-[#F1F0E8] tabular-nums">
                   {formatMinorUnits(contract.totalAmountMinorUnits, contract.currency)}
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-slate-800 pt-5 text-xs">
-              <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-4">
-                <div className="font-mono text-[11px] text-slate-400">CLIENT</div>
-                <div className="mt-1 font-semibold text-white">{contract.client.name}</div>
-                <div className="text-slate-400 font-mono text-[11px]">{contract.client.email}</div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-[rgba(241,240,232,0.08)] pt-5 text-xs">
+              <div className="rounded-xl border border-[rgba(241,240,232,0.10)] bg-[#171C19] p-4">
+                <div className="font-mono text-[10px] uppercase text-[#858F87]">CONTRACT CLIENT</div>
+                <div className="mt-1 font-bold text-[#F1F0E8]">{contract.client.name}</div>
+                <div className="text-[#858F87] font-mono text-[11px]">{contract.client.email}</div>
               </div>
 
-              <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-4">
-                <div className="font-mono text-[11px] text-slate-400">ASSIGNED DEVELOPER</div>
-                <div className="mt-1 font-semibold text-white">{contract.developer.name}</div>
-                <div className="text-slate-400 font-mono text-[11px]">
+              <div className="rounded-xl border border-[rgba(241,240,232,0.10)] bg-[#171C19] p-4">
+                <div className="font-mono text-[10px] uppercase text-[#858F87]">ASSIGNED DEVELOPER</div>
+                <div className="mt-1 font-bold text-[#F1F0E8]">{contract.developer.name}</div>
+                <div className="text-[#858F87] font-mono text-[11px]">
                   {contract.developer.githubUsername
                     ? `@${contract.developer.githubUsername}`
                     : contract.developer.email}
                 </div>
               </div>
 
-              <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-4 flex flex-col justify-between">
+              <div className="rounded-xl border border-[rgba(241,240,232,0.10)] bg-[#171C19] p-4 flex flex-col justify-between">
                 <div>
-                  <div className="font-mono text-[11px] text-slate-400">GITHUB REPOSITORY</div>
-                  <div className="mt-1 font-mono font-semibold text-sky-300">
+                  <div className="font-mono text-[10px] uppercase text-[#858F87]">GITHUB REPOSITORY</div>
+                  <div className="mt-1 font-mono font-bold text-[#F1F0E8]">
                     {contract.githubRepoOwner}/{contract.githubRepoName}
                   </div>
                 </div>
                 <div className="mt-2 flex items-center justify-between gap-2">
                   {linkedRepo ? (
-                    <span className="text-[11px] font-mono text-emerald-400">
+                    <span className="text-[11px] font-mono text-[#8FE0A5]">
                       ✓ App Verified (#{linkedRepo.repoId})
                     </span>
                   ) : (
@@ -293,9 +304,9 @@ export default function ContractDetailPage(): React.ReactElement {
                       type="button"
                       disabled={linkingRepo}
                       onClick={handleAssociateGitHubRepo}
-                      className="text-[11px] font-mono text-sky-400 hover:underline disabled:opacity-50"
+                      className="text-[11px] font-mono text-[#C6F36A] hover:underline disabled:opacity-50"
                     >
-                      {linkingRepo ? "Verifying..." : "Verify via GitHub App"}
+                      {linkingRepo ? "Verifying..." : "Verify via GitHub App →"}
                     </button>
                   )}
                 </div>
@@ -307,18 +318,18 @@ export default function ContractDetailPage(): React.ReactElement {
           <section className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-white">
+                <h2 className="text-lg font-bold text-[#F1F0E8]">
                   Contract Milestones ({contract.milestones.length})
                 </h2>
-                <p className="text-xs text-slate-400">
-                  Each milestone freezes its acceptance criteria via SHA-256 upon submission.
+                <p className="text-xs text-[#858F87]">
+                  Each milestone locks its acceptance criteria via SHA-256 upon submission.
                 </p>
               </div>
               {isClient && (
                 <button
                   type="button"
                   onClick={() => setShowAddMilestone((v) => !v)}
-                  className="rounded-xl bg-sky-600 px-4 py-2 text-xs font-semibold text-white hover:bg-sky-500 transition-colors"
+                  className="rounded-xl bg-[#C6F36A] px-4 py-2 text-xs font-bold text-[#090B0A] hover:bg-[#B5E358] transition-all shadow-md shadow-[#C6F36A]/15"
                 >
                   {showAddMilestone ? "Close Form" : "+ Add Milestone"}
                 </button>
@@ -328,15 +339,16 @@ export default function ContractDetailPage(): React.ReactElement {
             {showAddMilestone && isClient && (
               <form
                 onSubmit={handleAddMilestone}
-                className="rounded-2xl border border-sky-800/70 bg-slate-900/90 p-6 space-y-5"
+                className="rounded-2xl border border-[rgba(241,240,232,0.14)] bg-[#111512] p-6 space-y-5 shadow-2xl relative overflow-hidden"
               >
-                <h3 className="text-base font-semibold text-white">
-                  Add Milestone &amp; Acceptance Criteria
+                <div className="h-0.5 w-full bg-gradient-to-r from-[#C6F36A] via-[#8FE0A5] to-transparent absolute top-0 left-0" />
+                <h3 className="text-base font-bold text-[#F1F0E8]">
+                  Add Milestone &amp; Immutable Acceptance Criteria
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="md:col-span-2">
-                    <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                    <label className="block text-xs font-mono text-[#B9C5B5] mb-1.5">
                       Milestone Title
                     </label>
                     <input
@@ -345,11 +357,11 @@ export default function ContractDetailPage(): React.ReactElement {
                       value={mTitle}
                       onChange={(e) => setMTitle(e.target.value)}
                       placeholder="e.g. Milestone 2: Webhook Verification"
-                      className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none"
+                      className="w-full rounded-xl border border-[rgba(241,240,232,0.12)] bg-[#171C19] px-3.5 py-2 text-xs text-[#F1F0E8] focus:border-[#C6F36A] focus:outline-none focus:ring-1 focus:ring-[#C6F36A]"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                    <label className="block text-xs font-mono text-[#B9C5B5] mb-1.5">
                       Payout Amount ({contract.currency})
                     </label>
                     <input
@@ -359,11 +371,11 @@ export default function ContractDetailPage(): React.ReactElement {
                       min="1"
                       value={mAmountUsd}
                       onChange={(e) => setMAmountUsd(e.target.value)}
-                      className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none"
+                      className="w-full rounded-xl border border-[rgba(241,240,232,0.12)] bg-[#171C19] px-3.5 py-2 text-xs font-mono text-[#F1F0E8] focus:border-[#C6F36A] focus:outline-none focus:ring-1 focus:ring-[#C6F36A]"
                     />
                   </div>
                   <div className="md:col-span-3">
-                    <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                    <label className="block text-xs font-mono text-[#B9C5B5] mb-1.5">
                       Milestone Description
                     </label>
                     <textarea
@@ -372,22 +384,22 @@ export default function ContractDetailPage(): React.ReactElement {
                       rows={2}
                       value={mDescription}
                       onChange={(e) => setMDescription(e.target.value)}
-                      placeholder="Specify acceptance scope and deliverables..."
-                      className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none"
+                      placeholder="Specify acceptance scope, test criteria, and deliverables..."
+                      className="w-full rounded-xl border border-[rgba(241,240,232,0.12)] bg-[#171C19] px-3.5 py-2 text-xs text-[#F1F0E8] focus:border-[#C6F36A] focus:outline-none focus:ring-1 focus:ring-[#C6F36A]"
                     />
                   </div>
                 </div>
 
                 {/* Criteria Builder */}
-                <div className="space-y-3 border-t border-slate-800 pt-4">
+                <div className="space-y-3 border-t border-[rgba(241,240,232,0.08)] pt-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    <span className="text-xs font-mono uppercase tracking-wider text-[#858F87]">
                       Acceptance Criteria ({criteria.length})
                     </span>
                     <button
                       type="button"
                       onClick={addCriterionRow}
-                      className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-1 text-xs text-slate-200 hover:bg-slate-700"
+                      className="rounded-xl border border-[rgba(241,240,232,0.12)] bg-[#171C19] px-3 py-1 text-xs font-mono text-[#F1F0E8] hover:border-[#C6F36A]/40 transition-colors"
                     >
                       + Add Criterion
                     </button>
@@ -396,7 +408,7 @@ export default function ContractDetailPage(): React.ReactElement {
                   {criteria.map((c, idx) => (
                     <div
                       key={idx}
-                      className="grid grid-cols-1 md:grid-cols-12 gap-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3.5"
+                      className="grid grid-cols-1 md:grid-cols-12 gap-3 rounded-xl border border-[rgba(241,240,232,0.08)] bg-[#171C19] p-3.5"
                     >
                       <div className="md:col-span-4">
                         <input
@@ -405,7 +417,7 @@ export default function ContractDetailPage(): React.ReactElement {
                           value={c.title}
                           onChange={(e) => updateCriterionRow(idx, { title: e.target.value })}
                           placeholder="Criterion title"
-                          className="w-full rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-xs text-white focus:border-sky-500 focus:outline-none"
+                          className="w-full rounded-lg border border-[rgba(241,240,232,0.10)] bg-[#090B0A] px-2.5 py-1.5 text-xs text-[#F1F0E8] focus:border-[#C6F36A] focus:outline-none"
                         />
                       </div>
                       <div className="md:col-span-4">
@@ -417,7 +429,7 @@ export default function ContractDetailPage(): React.ReactElement {
                             updateCriterionRow(idx, { description: e.target.value })
                           }
                           placeholder="Verification rule description"
-                          className="w-full rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-xs text-white focus:border-sky-500 focus:outline-none"
+                          className="w-full rounded-lg border border-[rgba(241,240,232,0.10)] bg-[#090B0A] px-2.5 py-1.5 text-xs text-[#F1F0E8] focus:border-[#C6F36A] focus:outline-none"
                         />
                       </div>
                       <div className="md:col-span-2">
@@ -428,7 +440,7 @@ export default function ContractDetailPage(): React.ReactElement {
                               criterionType: e.target.value as CriterionType,
                             })
                           }
-                          className="w-full rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs text-white focus:border-sky-500 focus:outline-none"
+                          className="w-full rounded-lg border border-[rgba(241,240,232,0.10)] bg-[#090B0A] px-2 py-1.5 text-xs font-mono text-[#F1F0E8] focus:border-[#C6F36A] focus:outline-none"
                         >
                           <option value="AUTOMATED_TEST">AUTOMATED_TEST</option>
                           <option value="FILE_CHANGE">FILE_CHANGE</option>
@@ -438,13 +450,14 @@ export default function ContractDetailPage(): React.ReactElement {
                         </select>
                       </div>
                       <div className="md:col-span-2 flex items-center justify-between gap-2">
-                        <label className="flex items-center gap-1.5 text-[11px] text-slate-300">
+                        <label className="flex items-center gap-1.5 text-[11px] font-mono text-[#B9C5B5]">
                           <input
                             type="checkbox"
                             checked={c.isMandatory}
                             onChange={(e) =>
                               updateCriterionRow(idx, { isMandatory: e.target.checked })
                             }
+                            className="accent-[#C6F36A]"
                           />
                           Mandatory
                         </label>
@@ -452,7 +465,7 @@ export default function ContractDetailPage(): React.ReactElement {
                           <button
                             type="button"
                             onClick={() => removeCriterionRow(idx)}
-                            className="text-xs text-rose-400 hover:text-rose-300"
+                            className="text-xs text-[#E77D70] hover:underline"
                           >
                             Remove
                           </button>
@@ -466,52 +479,52 @@ export default function ContractDetailPage(): React.ReactElement {
                   <button
                     type="button"
                     onClick={() => setShowAddMilestone(false)}
-                    className="rounded-lg border border-slate-700 px-4 py-2 text-xs text-slate-300"
+                    className="rounded-xl border border-[rgba(241,240,232,0.12)] px-4 py-2 text-xs text-[#858F87] hover:text-[#F1F0E8]"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={addingMilestone}
-                    className="rounded-lg bg-sky-600 px-5 py-2 text-xs font-semibold text-white hover:bg-sky-500 disabled:opacity-50"
+                    className="rounded-xl bg-[#C6F36A] px-5 py-2 text-xs font-bold text-[#090B0A] hover:bg-[#B5E358] disabled:opacity-50"
                   >
-                    {addingMilestone ? "Saving..." : "Save Milestone"}
+                    {addingMilestone ? "Saving..." : "Lock & Save Milestone"}
                   </button>
                 </div>
               </form>
             )}
 
             {contract.milestones.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-800 bg-slate-900/40 p-10 text-center text-xs text-slate-400">
-                No milestones added yet. {isClient ? "Click '+ Add Milestone' above to define the first deliverable." : "Waiting for client to define milestones."}
+              <div className="rounded-2xl border border-dashed border-[rgba(241,240,232,0.10)] bg-[#111512]/50 p-10 text-center text-xs text-[#858F87]">
+                No milestones defined yet. {isClient ? "Click '+ Add Milestone' above to specify the first milestone deliverable." : "Waiting for client to define milestones."}
               </div>
             ) : (
               <div className="space-y-3">
                 {contract.milestones.map((m) => (
                   <div
                     key={m.id}
-                    className="rounded-2xl border border-slate-800 bg-slate-900/75 p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+                    className="rounded-2xl border border-[rgba(241,240,232,0.10)] bg-[#111512] p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 fintech-card-hover"
                   >
                     <div className="space-y-1.5">
                       <div className="flex flex-wrap items-center gap-2.5">
-                        <span className="font-mono text-xs text-slate-500">
+                        <span className="font-mono text-xs text-[#858F87]">
                           Milestone #{m.orderIndex}
                         </span>
-                        <h3 className="text-base font-semibold text-white">{m.title}</h3>
+                        <h3 className="text-base font-bold text-[#F1F0E8]">{m.title}</h3>
                         <StatusBadge status={m.status} />
                       </div>
-                      <p className="text-xs text-slate-400 max-w-2xl">{m.description}</p>
-                      <div className="flex flex-wrap items-center gap-4 text-[11px] font-mono text-slate-400 pt-1">
+                      <p className="text-xs text-[#B9C5B5] max-w-2xl leading-relaxed">{m.description}</p>
+                      <div className="flex flex-wrap items-center gap-4 text-[11px] font-mono text-[#858F87] pt-1">
                         <span>{m.criteriaCount ?? 0} Acceptance Criteria</span>
                         {m.latestPrNumber && (
-                          <span className="text-sky-300">Latest PR #{m.latestPrNumber}</span>
+                          <span className="text-[#F1F0E8]">Latest PR #{m.latestPrNumber}</span>
                         )}
                       </div>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3">
                       <div className="text-right mr-2">
-                        <div className="text-base font-bold font-mono text-emerald-300">
+                        <div className="text-base font-bold font-mono text-[#F1F0E8] tabular-nums">
                           {formatMinorUnits(m.amountMinorUnits, m.currency)}
                         </div>
                       </div>
@@ -521,7 +534,7 @@ export default function ContractDetailPage(): React.ReactElement {
                           type="button"
                           disabled={fundingId === m.id}
                           onClick={() => handleFundMilestone(m.id)}
-                          className="rounded-lg border border-sky-700 bg-sky-950/70 px-3.5 py-2 text-xs font-semibold text-sky-300 hover:bg-sky-900/70 disabled:opacity-50"
+                          className="rounded-xl border border-[#C6F36A]/30 bg-[#C6F36A]/10 px-3.5 py-2 text-xs font-semibold text-[#C6F36A] hover:bg-[#C6F36A]/20 transition-colors disabled:opacity-50"
                         >
                           {fundingId === m.id ? "Funding..." : "Fund Milestone"}
                         </button>
@@ -529,9 +542,9 @@ export default function ContractDetailPage(): React.ReactElement {
 
                       <Link
                         href={`/milestones/${m.id}`}
-                        className="rounded-lg bg-slate-800 border border-slate-700 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-700 transition-colors"
+                        className="rounded-xl bg-[#171C19] border border-[rgba(241,240,232,0.14)] px-4 py-2 text-xs font-semibold text-[#F1F0E8] hover:border-[#C6F36A]/50 hover:text-[#C6F36A] transition-all"
                       >
-                        Open Verification Workspace &rarr;
+                        Open Workbench →
                       </Link>
                     </div>
                   </div>

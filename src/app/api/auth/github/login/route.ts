@@ -33,7 +33,7 @@ async function handleLogin(req: NextRequest) {
       verifyCsrfProtection(req);
     }
     const searchParams = req.nextUrl.searchParams;
-    const requestedAction = searchParams.get("action");
+    const rawAction = searchParams.get("action")?.trim().toLowerCase();
     const returnTo = searchParams.get("returnTo") ?? undefined;
     const format = searchParams.get("format");
 
@@ -46,8 +46,10 @@ async function handleLogin(req: NextRequest) {
       // Unauthenticated caller
     }
 
+    const isLinkAction = rawAction === "link";
+
     // Never allow an unauthenticated request to link an account
-    if (requestedAction === "link" && !authenticatedUserId) {
+    if (isLinkAction && !authenticatedUserId) {
       return NextResponse.json(
         {
           error: "Unauthorized",
@@ -57,11 +59,11 @@ async function handleLogin(req: NextRequest) {
       );
     }
 
-    const action = requestedAction === "link" ? "link" : "login";
+    const action = isLinkAction ? "link" : "login";
 
     const { authorizationUrl, cookieHeader } = await githubOAuthService.generateAuthorizationUrl({
       action,
-      authenticatedUserId,
+      authenticatedUserId: isLinkAction ? authenticatedUserId : undefined,
       returnTo,
     });
 

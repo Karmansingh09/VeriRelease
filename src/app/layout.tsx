@@ -14,7 +14,7 @@ export default function RootLayout({
 }>): React.ReactElement {
   return (
     <html lang="en" className="dark">
-      <body className="min-h-screen bg-slate-950 text-slate-100 antialiased selection:bg-sky-500/30 selection:text-sky-200">
+      <body className="min-h-screen bg-[#090B0A] text-[#F1F0E8] antialiased selection:bg-[#C6F36A]/20 selection:text-[#C6F36A]">
         {children}
       </body>
     </html>

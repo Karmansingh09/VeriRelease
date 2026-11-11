@@ -100,6 +100,8 @@ export interface SubmissionItem {
   prNumber: number;
   prCommitSha: string;
   prUrl: string;
+  verifiedPrUrl?: string | null;
+  isVerified?: boolean;
   criteriaVersion: number;
   criteriaHash: string;
   status: "PENDING" | "EVALUATED" | "SUPERSEDED";

@@ -179,6 +179,13 @@ export class GitHubOAuthService {
       throw new DomainUnauthorizedError("Cannot initiate GitHub account linking without an authenticated user session");
     }
 
+    // A login action MUST NOT contain a target user ID
+    if (action === "login" && options?.authenticatedUserId) {
+      throw new DomainValidationError("Login state must not include a target user ID");
+    }
+
+    const targetUserId = action === "link" ? options?.authenticatedUserId : undefined;
+
     // Sanitize returnTo to prevent open redirects
     let returnTo = "/";
     if (options?.returnTo && typeof options.returnTo === "string") {
@@ -200,7 +207,7 @@ export class GitHubOAuthService {
       stateNonce,
       codeVerifier,
       action,
-      userId: options?.authenticatedUserId ?? null,
+      userId: targetUserId ?? null,
       returnTo,
       expiresAt,
     });
@@ -209,7 +216,7 @@ export class GitHubOAuthService {
     const payload: OAuthStatePayload = {
       nonce: stateNonce,
       action,
-      userId: options?.authenticatedUserId,
+      ...(targetUserId ? { userId: targetUserId } : {}),
       returnTo,
       createdAt: Date.now(),
     };

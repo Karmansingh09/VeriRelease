@@ -121,23 +121,23 @@ export class DuplicatePayoutError extends DomainError {
 }
 
 /**
- * Thrown when an actor is unauthenticated (missing or invalid credentials).
+ * Thrown when an actor is authenticated but forbidden from accessing a resource.
  */
-export class DomainUnauthorizedError extends DomainError {
-  public override readonly code = "DOMAIN_UNAUTHORIZED" as const;
+export class DomainForbiddenError extends DomainError {
+  public override readonly code: string = "DOMAIN_FORBIDDEN";
 
-  constructor(message: string = "Authentication is required to access this resource.") {
+  constructor(message: string = "Access to the requested resource is forbidden.") {
     super(message);
   }
 }
 
 /**
- * Thrown when an actor is authenticated but forbidden from accessing a resource.
+ * Thrown when an actor is unauthenticated (missing or invalid credentials).
  */
-export class DomainForbiddenError extends DomainError {
-  public override readonly code = "DOMAIN_FORBIDDEN" as const;
+export class DomainUnauthorizedError extends DomainForbiddenError {
+  public override readonly code: string = "DOMAIN_UNAUTHORIZED";
 
-  constructor(message: string = "Access to the requested resource is forbidden.") {
+  constructor(message: string = "Authentication is required to access this resource.") {
     super(message);
   }
 }

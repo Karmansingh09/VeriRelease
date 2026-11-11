@@ -82,6 +82,52 @@ describe("GitHub OAuth API Endpoints Unit Test Suite", () => {
       const json = await res.json();
       expect(json.authorizationUrl).toContain("https://github.com/login/oauth/authorize");
     });
+
+    it("ensures an authenticated caller visiting login without action=link generates login state with undefined userId", async () => {
+      vi.spyOn(authService, "authenticateRequest").mockResolvedValue({
+        id: "usr_alice",
+        email: "alice@test.com",
+        name: "Alice",
+        role: "DEVELOPER",
+        githubUsername: null,
+        isActive: true,
+        tokenVersion: 1,
+      });
+
+      const generateSpy = vi.spyOn(githubOAuthService, "generateAuthorizationUrl");
+
+      const req = new NextRequest("http://localhost:3000/api/auth/github/login?returnTo=/dashboard");
+      await loginGet(req);
+
+      expect(generateSpy).toHaveBeenCalledWith({
+        action: "login",
+        authenticatedUserId: undefined,
+        returnTo: "/dashboard",
+      });
+    });
+
+    it("ensures an authenticated caller visiting login with action=link passes authenticatedUserId", async () => {
+      vi.spyOn(authService, "authenticateRequest").mockResolvedValue({
+        id: "usr_bob",
+        email: "bob@test.com",
+        name: "Bob",
+        role: "DEVELOPER",
+        githubUsername: null,
+        isActive: true,
+        tokenVersion: 1,
+      });
+
+      const generateSpy = vi.spyOn(githubOAuthService, "generateAuthorizationUrl");
+
+      const req = new NextRequest("http://localhost:3000/api/auth/github/login?action=link&returnTo=/settings");
+      await loginGet(req);
+
+      expect(generateSpy).toHaveBeenCalledWith({
+        action: "link",
+        authenticatedUserId: "usr_bob",
+        returnTo: "/settings",
+      });
+    });
   });
 
   describe("GET /api/auth/github/callback", () => {

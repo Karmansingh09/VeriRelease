@@ -19,7 +19,7 @@ export async function GET() {
 
   const demoAuthEnabled =
     process.env.ENABLE_DEMO_AUTH === "true" ||
-    (env.NODE_ENV !== "production" && !githubOAuthConfigured);
+    (env.NODE_ENV !== "production" && process.env.ENABLE_DEMO_AUTH !== "false");
 
   const aiMode =
     env.OPENAI_API_KEY &&

@@ -10,6 +10,7 @@ import { createSign } from "node:crypto";
 import {
   DomainForbiddenError,
   DomainNotFoundError,
+  DomainUnauthorizedError,
   DomainValidationError,
   GitHubRateLimitError,
   ProviderUnavailableError,
@@ -243,6 +244,7 @@ export class FetchGitHubProvider implements GitHubProvider {
         if (
           err instanceof DomainNotFoundError ||
           err instanceof DomainForbiddenError ||
+          err instanceof DomainUnauthorizedError ||
           err instanceof DomainValidationError ||
           err instanceof GitHubRateLimitError ||
           err instanceof ProviderUnavailableError
@@ -296,8 +298,12 @@ export class FetchGitHubProvider implements GitHubProvider {
       throw new DomainNotFoundError("GitHub Resource", redactSecrets(endpoint));
     }
 
-    if (status === 401 || status === 403) {
-      throw new DomainForbiddenError(`GitHub access denied for ${redactSecrets(endpoint)}: ${message}`);
+    if (status === 401) {
+      throw new DomainUnauthorizedError("GitHub authentication needs to be refreshed.");
+    }
+
+    if (status === 403) {
+      throw new DomainForbiddenError("GitHub access permission is insufficient.");
     }
 
     if (status === 422) {
@@ -395,40 +401,47 @@ export class FetchGitHubProvider implements GitHubProvider {
     repo: string,
     pullNumber: number
   ): Promise<GitHubPullRequestDetails> {
-    const authHeader = await this.getRepoAuthHeader(owner, repo);
-    const { data } = await this.request<Record<string, unknown>>(
-      `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/pulls/${pullNumber}`,
-      undefined,
-      authHeader
-    );
+    try {
+      const authHeader = await this.getRepoAuthHeader(owner, repo);
+      const { data } = await this.request<Record<string, unknown>>(
+        `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/pulls/${pullNumber}`,
+        undefined,
+        authHeader
+      );
 
-    const head = (data.head ?? {}) as Record<string, unknown>;
-    const base = (data.base ?? {}) as Record<string, unknown>;
-    const user = (data.user ?? {}) as Record<string, unknown>;
-    const headRepo = head.repo as Record<string, unknown> | null;
-    const baseRepo = base.repo as Record<string, unknown> | null;
+      const head = (data.head ?? {}) as Record<string, unknown>;
+      const base = (data.base ?? {}) as Record<string, unknown>;
+      const user = (data.user ?? {}) as Record<string, unknown>;
+      const headRepo = head.repo as Record<string, unknown> | null;
+      const baseRepo = base.repo as Record<string, unknown> | null;
 
-    return {
-      id: Number(data.id),
-      number: Number(data.number),
-      title: String(data.title),
-      body: data.body ? String(data.body) : null,
-      state: data.state === "closed" ? "closed" : "open",
-      isMerged: Boolean(data.merged_at !== null && data.merged_at !== undefined),
-      mergedAt: data.merged_at ? new Date(String(data.merged_at)) : null,
-      mergeCommitSha: data.merge_commit_sha ? String(data.merge_commit_sha).toLowerCase() : null,
-      headSha: String(head.sha ?? "").toLowerCase(),
-      headRef: String(head.ref ?? ""),
-      headRepoId: headRepo?.id ? Number(headRepo.id) : null,
-      baseSha: String(base.sha ?? "").toLowerCase(),
-      baseRef: String(base.ref ?? ""),
-      baseRepoId: baseRepo?.id ? Number(baseRepo.id) : null,
-      authorUsername: String(user.login ?? ""),
-      authorId: Number(user.id ?? 0),
-      htmlUrl: String(data.html_url),
-      createdAt: new Date(String(data.created_at)),
-      updatedAt: new Date(String(data.updated_at)),
-    };
+      return {
+        id: Number(data.id),
+        number: Number(data.number),
+        title: String(data.title),
+        body: data.body ? String(data.body) : null,
+        state: data.state === "closed" ? "closed" : "open",
+        isMerged: Boolean(data.merged_at !== null && data.merged_at !== undefined),
+        mergedAt: data.merged_at ? new Date(String(data.merged_at)) : null,
+        mergeCommitSha: data.merge_commit_sha ? String(data.merge_commit_sha).toLowerCase() : null,
+        headSha: String(head.sha ?? "").toLowerCase(),
+        headRef: String(head.ref ?? ""),
+        headRepoId: headRepo?.id ? Number(headRepo.id) : null,
+        baseSha: String(base.sha ?? "").toLowerCase(),
+        baseRef: String(base.ref ?? ""),
+        baseRepoId: baseRepo?.id ? Number(baseRepo.id) : null,
+        authorUsername: String(user.login ?? ""),
+        authorId: Number(user.id ?? 0),
+        htmlUrl: String(data.html_url),
+        createdAt: new Date(String(data.created_at)),
+        updatedAt: new Date(String(data.updated_at)),
+      };
+    } catch (err: unknown) {
+      if (err instanceof DomainNotFoundError) {
+        throw new DomainNotFoundError("Pull request not found or inaccessible.");
+      }
+      throw err;
+    }
   }
 
   async getPullRequestCommits(

@@ -26,7 +26,13 @@ const createSubmissionSchema = z.object({
     .string()
     .trim()
     .regex(/^[0-9a-fA-F]{40}$/, "prCommitSha must be a 40-character hex commit SHA"),
-  prUrl: z.string().trim().url("prUrl must be a valid URL"),
+  prUrl: z
+    .string()
+    .trim()
+    .url("prUrl must be a valid URL")
+    .refine((url) => !url.includes("/issues/"), {
+      message: "prUrl must be a pull request URL, not an issue URL",
+    }),
 });
 
 interface RouteContext {

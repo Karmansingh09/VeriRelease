@@ -105,21 +105,25 @@ export async function POST(req: NextRequest, context: RouteContext) {
   } catch (err: unknown) {
     if (err instanceof DomainUnauthorizedError) {
       return NextResponse.json(
-        { error: "Unauthorized", message: redactSecrets(err.message) },
+        { error: "Unauthorized", message: "GitHub authentication needs to be refreshed." },
         { status: 401 }
       );
     }
 
     if (err instanceof DomainForbiddenError) {
       return NextResponse.json(
-        { error: "Forbidden", message: redactSecrets(err.message) },
+        { error: "Forbidden", message: "GitHub access permission is insufficient." },
         { status: 403 }
       );
     }
 
     if (err instanceof DomainNotFoundError) {
+      const message =
+        err.entity === "MilestoneSubmission"
+          ? redactSecrets(err.message)
+          : "Pull request not found or inaccessible.";
       return NextResponse.json(
-        { error: "Not Found", message: redactSecrets(err.message) },
+        { error: "Not Found", message },
         { status: 404 }
       );
     }
@@ -217,21 +221,25 @@ export async function GET(req: NextRequest, context: RouteContext) {
   } catch (err: unknown) {
     if (err instanceof DomainUnauthorizedError) {
       return NextResponse.json(
-        { error: "Unauthorized", message: redactSecrets(err.message) },
+        { error: "Unauthorized", message: "GitHub authentication needs to be refreshed." },
         { status: 401 }
       );
     }
 
     if (err instanceof DomainForbiddenError) {
       return NextResponse.json(
-        { error: "Forbidden", message: redactSecrets(err.message) },
+        { error: "Forbidden", message: "GitHub access permission is insufficient." },
         { status: 403 }
       );
     }
 
     if (err instanceof DomainNotFoundError) {
+      const message =
+        err.entity === "MilestoneSubmission"
+          ? redactSecrets(err.message)
+          : "Pull request not found or inaccessible.";
       return NextResponse.json(
-        { error: "Not Found", message: redactSecrets(err.message) },
+        { error: "Not Found", message },
         { status: 404 }
       );
     }

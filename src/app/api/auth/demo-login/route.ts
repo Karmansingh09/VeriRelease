@@ -45,15 +45,13 @@ const DEMO_PERSONAS = {
 } as const;
 
 function isDemoAuthAllowed(): boolean {
+  if (process.env.ENABLE_DEMO_AUTH === "false") {
+    return false;
+  }
   if (process.env.ENABLE_DEMO_AUTH === "true") {
     return true;
   }
-  const githubOAuthConfigured = Boolean(
-    env.GITHUB_OAUTH_CLIENT_ID &&
-      !env.GITHUB_OAUTH_CLIENT_ID.includes("placeholder") &&
-      !env.GITHUB_OAUTH_CLIENT_ID.includes("your_")
-  );
-  return env.NODE_ENV !== "production" && !githubOAuthConfigured;
+  return env.NODE_ENV !== "production";
 }
 
 export async function POST(req: NextRequest) {

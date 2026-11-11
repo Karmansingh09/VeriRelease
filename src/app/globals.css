@@ -3,31 +3,117 @@
 @tailwind utilities;
 
 :root {
-  --background: #0a0e17;
-  --foreground: #f8fafc;
-  --card: #111827;
-  --card-foreground: #f8fafc;
-  --popover: #111827;
-  --popover-foreground: #f8fafc;
-  --primary: #0070ba;
-  --primary-foreground: #ffffff;
-  --secondary: #1f2937;
-  --secondary-foreground: #f8fafc;
-  --muted: #1e293b;
-  --muted-foreground: #94a3b8;
-  --accent: #1e293b;
-  --accent-foreground: #f8fafc;
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-  --border: #1e293b;
-  --input: #1e293b;
-  --ring: #0070ba;
-  --radius: 0.5rem;
+  --background: #090B0A;
+  --foreground: #F1F0E8;
+  --card: #111512;
+  --card-foreground: #F1F0E8;
+  --popover: #111512;
+  --popover-foreground: #F1F0E8;
+  --primary: #C6F36A;
+  --primary-foreground: #090B0A;
+  --secondary: #171C19;
+  --secondary-foreground: #F1F0E8;
+  --muted: #1D241F;
+  --muted-foreground: #858F87;
+  --accent: #C6F36A;
+  --accent-foreground: #090B0A;
+  --destructive: #E77D70;
+  --destructive-foreground: #F1F0E8;
+  --border: rgba(241, 240, 232, 0.10);
+  --input: rgba(241, 240, 232, 0.12);
+  --ring: #C6F36A;
+  --radius: 0.625rem;
+}
+
+html {
+  scroll-behavior: smooth;
+  background-color: #090B0A;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   min-height: 100vh;
+  overflow-x: hidden;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+/* Tabular Numerals for Financial Data */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Subtle Editorial Financial Grid */
+.bg-terminal-grid {
+  background-image: 
+    linear-gradient(to right, rgba(241, 240, 232, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(241, 240, 232, 0.035) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* Subtle Micro Grain Texture Effect */
+.bg-subtle-noise {
+  background-image: radial-gradient(rgba(241, 240, 232, 0.05) 1px, transparent 0);
+  background-size: 16px 16px;
+}
+
+/* Soft Electric Lime Ambient Glows */
+.ambient-glow-lime {
+  background: radial-gradient(circle at 50% 0%, rgba(198, 243, 106, 0.08) 0%, rgba(9, 11, 10, 0) 70%);
+}
+
+.ambient-glow-mint {
+  background: radial-gradient(circle at 100% 50%, rgba(143, 224, 165, 0.06) 0%, rgba(9, 11, 10, 0) 60%);
+}
+
+/* Shimmer animation for pending/processing progress */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, rgba(241, 240, 232, 0) 0%, rgba(198, 243, 106, 0.08) 50%, rgba(241, 240, 232, 0) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 3s infinite;
+}
+
+/* Fintech card hover transition */
+.fintech-card-hover {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.fintech-card-hover:hover {
+  border-color: rgba(198, 243, 106, 0.32);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 24px -6px rgba(0, 0, 0, 0.6), 0 0 16px -4px rgba(198, 243, 106, 0.12);
+}
+
+/* Electric Lime interactive focus ring */
+.focus-lime {
+  outline: none;
+}
+.focus-lime:focus-visible {
+  border-color: #C6F36A;
+  box-shadow: 0 0 0 2px rgba(198, 243, 106, 0.25);
+}
+
+/* Custom minimal scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #090B0A;
+}
+::-webkit-scrollbar-thumb {
+  background: #1D241F;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #242C26;
 }

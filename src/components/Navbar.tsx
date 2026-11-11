@@ -63,34 +63,56 @@ export function Navbar({
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-800/90 bg-slate-950/90 backdrop-blur-md">
+    <header className="sticky top-0 z-40 border-b border-[rgba(241,240,232,0.10)] bg-[#090B0A]/95 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
         <div className="flex items-center gap-4">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-sky-500 to-blue-700 font-mono text-sm font-bold text-white shadow-sm shadow-sky-900/50">
-              VR
-            </span>
+            {/* Precision Fintech Interlocking Geometric Icon */}
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#C6F36A]/40 bg-[#C6F36A]/10 text-[#C6F36A] shadow-sm shadow-[#C6F36A]/20 group-hover:border-[#C6F36A] group-hover:scale-105 transition-all">
+              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none">
+                <path
+                  d="M4 7L10 3.5L16 7V13L10 16.5L4 13V7Z"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M7 10L9.5 12.5L13.5 8"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-semibold tracking-tight text-white group-hover:text-sky-300 transition-colors">
+                <span className="font-semibold tracking-tight text-[#F1F0E8] group-hover:text-[#C6F36A] transition-colors">
                   VeriRelease
                 </span>
-                <span className="hidden sm:inline-block rounded bg-sky-950/90 px-2 py-0.5 text-[10px] font-mono text-sky-300 border border-sky-800/80">
-                  PayPal AI Hackathon
+                <span className="hidden sm:inline-block rounded bg-[#171C19] px-2 py-0.5 text-[10px] font-mono text-[#C6F36A] border border-[#C6F36A]/30">
+                  PayPal AI Hackathon 2026
                 </span>
               </div>
-              <p className="hidden md:block text-[11px] text-slate-400">
+              <p className="hidden md:block text-[11px] text-[#858F87]">
                 AI evaluates &bull; Deterministic policy authorizes &bull; PayPal settles
               </p>
             </div>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-1 ml-2">
+          <nav className="hidden md:flex items-center gap-3 ml-2 text-xs">
             <Link
-              href="/dashboard"
-              className="rounded-md px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-800/70 hover:text-white transition-colors"
+              href="/"
+              className="text-[#858F87] hover:text-[#F1F0E8] transition-colors"
             >
-              Workspace
+              &larr; Home
+            </Link>
+            <span className="text-[#858F87]/40">&bull;</span>
+            <Link
+              href="/#sim"
+              className="text-[#858F87] hover:text-[#F1F0E8] transition-colors"
+            >
+              Simulation
             </Link>
           </nav>
         </div>
@@ -98,15 +120,17 @@ export function Navbar({
         <div className="flex flex-wrap items-center gap-2.5">
           {systemStatus && (
             <div className="hidden lg:flex items-center gap-1.5 text-[11px] font-mono">
-              <span className="rounded border border-slate-800 bg-slate-900 px-2 py-1 text-slate-300">
-                AI:{" "}
-                <span className={systemStatus.aiMode === "openai" ? "text-emerald-400" : "text-amber-300"}>
-                  {systemStatus.aiMode === "openai" ? "OpenAI GPT-4o" : "Demo Provider"}
+              <span className="rounded-lg border border-[rgba(241,240,232,0.10)] bg-[#111512] px-2.5 py-1 text-[#B9C5B5] flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#B9C5B5]" />
+                <span className="text-[#858F87]">AI:</span>
+                <span className={systemStatus.aiMode === "openai" ? "text-[#8FE0A5]" : "text-[#B9C5B5]"}>
+                  {systemStatus.aiMode === "openai" ? "OpenAI GPT-4o" : "Demo Mode"}
                 </span>
               </span>
-              <span className="rounded border border-slate-800 bg-slate-900 px-2 py-1 text-slate-300">
-                PayPal:{" "}
-                <span className={systemStatus.paypalMode === "mock" ? "text-amber-300" : "text-emerald-400"}>
+              <span className="rounded-lg border border-[rgba(241,240,232,0.10)] bg-[#111512] px-2.5 py-1 text-[#B9C5B5] flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#C6F36A]" />
+                <span className="text-[#858F87]">PayPal:</span>
+                <span className="text-[#C6F36A]">
                   {systemStatus.paypalMode === "mock"
                     ? "Sandbox Mock"
                     : `Sandbox (${systemStatus.paypalMode})`}
@@ -117,10 +141,10 @@ export function Navbar({
 
           {user ? (
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/90 px-3 py-1.5">
+              <div className="flex items-center gap-2 rounded-lg border border-[rgba(241,240,232,0.10)] bg-[#111512] px-3 py-1.5">
                 <div className="text-right">
-                  <div className="text-xs font-medium text-white leading-tight">{user.name}</div>
-                  <div className="text-[10px] font-mono text-slate-400">
+                  <div className="text-xs font-medium text-[#F1F0E8] leading-tight">{user.name}</div>
+                  <div className="text-[10px] font-mono text-[#858F87]">
                     {user.githubUsername ? `@${user.githubUsername}` : user.email}
                   </div>
                 </div>
@@ -128,17 +152,16 @@ export function Navbar({
               </div>
 
               {systemStatus?.demoAuthEnabled && (
-                <div className="flex items-center rounded-lg border border-slate-800 bg-slate-900/70 p-0.5">
+                <div className="flex items-center rounded-lg border border-[rgba(241,240,232,0.10)] bg-[#111512] p-0.5">
                   <button
                     type="button"
                     disabled={busy || user.email === "alice.client@verirelease.demo"}
                     onClick={() => handleDemoSwitch("client")}
-                    className={`rounded px-2 py-1 text-[11px] font-medium transition-colors ${
+                    className={`rounded px-2.5 py-1 text-[11px] font-medium transition-colors ${
                       user.email === "alice.client@verirelease.demo"
-                        ? "bg-sky-600 text-white"
-                        : "text-slate-400 hover:text-white"
+                        ? "bg-[#1D241F] text-[#F1F0E8] border border-[rgba(241,240,232,0.20)] shadow-sm"
+                        : "text-[#858F87] hover:text-[#F1F0E8]"
                     }`}
-                    title="Switch session to Demo Client (Alice)"
                   >
                     Alice (Client)
                   </button>
@@ -146,33 +169,31 @@ export function Navbar({
                     type="button"
                     disabled={busy || user.email === "bob.dev@verirelease.demo"}
                     onClick={() => handleDemoSwitch("developer")}
-                    className={`rounded px-2 py-1 text-[11px] font-medium transition-colors ${
+                    className={`rounded px-2.5 py-1 text-[11px] font-medium transition-colors ${
                       user.email === "bob.dev@verirelease.demo"
-                        ? "bg-violet-600 text-white"
-                        : "text-slate-400 hover:text-white"
+                        ? "bg-[#C6F36A]/15 text-[#C6F36A] border border-[#C6F36A]/30 shadow-sm"
+                        : "text-[#858F87] hover:text-[#F1F0E8]"
                     }`}
-                    title="Switch session to Demo Developer (Bob)"
                   >
                     Bob (Dev)
                   </button>
                 </div>
               )}
 
-              {!systemStatus?.demoAuthEnabled && (
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={handleRoleToggle}
-                  className="rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-xs text-slate-300 hover:bg-slate-800 hover:text-white transition-colors disabled:opacity-50"
-                >
-                  Switch to {user.role === "CLIENT" ? "Developer" : "Client"}
-                </button>
-              )}
+              <button
+                type="button"
+                disabled={busy}
+                onClick={handleRoleToggle}
+                className="rounded-lg border border-[rgba(241,240,232,0.10)] bg-[#111512] px-2.5 py-1.5 text-xs text-[#B9C5B5] hover:border-[rgba(241,240,232,0.25)] hover:text-[#F1F0E8] transition-colors"
+                title="Switch active role between CLIENT and DEVELOPER"
+              >
+                Role ({user.role})
+              </button>
 
               {!user.githubUsername && (
                 <a
                   href="/api/auth/github/login?action=link&returnTo=/dashboard"
-                  className="rounded-lg border border-sky-700/80 bg-sky-950/60 px-2.5 py-1.5 text-xs text-sky-300 hover:bg-sky-900/60 transition-colors"
+                  className="rounded-lg border border-[#C6F36A]/30 bg-[#C6F36A]/10 px-2.5 py-1.5 text-xs font-semibold text-[#C6F36A] hover:bg-[#C6F36A]/20 transition-colors"
                 >
                   Link GitHub
                 </a>
@@ -182,18 +203,24 @@ export function Navbar({
                 type="button"
                 disabled={busy}
                 onClick={handleLogout}
-                className="rounded-lg border border-slate-800 bg-slate-900 px-2.5 py-1.5 text-xs text-slate-400 hover:border-slate-700 hover:text-white transition-colors disabled:opacity-50"
+                className="rounded-lg border border-[rgba(241,240,232,0.10)] bg-[#111512] px-2.5 py-1.5 text-xs text-[#858F87] hover:border-[rgba(241,240,232,0.25)] hover:text-[#F1F0E8] transition-colors disabled:opacity-50"
               >
                 Sign out
               </button>
             </div>
           ) : (
-            <Link
-              href="/dashboard"
-              className="rounded-lg bg-sky-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-sky-500 transition-colors"
-            >
-              Sign in / Workspace
-            </Link>
+            <div className="flex items-center gap-2">
+              <span className="hidden sm:inline-flex items-center gap-1.5 text-xs font-mono text-[#C6F36A] bg-[#C6F36A]/10 border border-[#C6F36A]/30 px-2.5 py-1 rounded-lg">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#C6F36A] animate-pulse" />
+                <span>Zero Escrow Active</span>
+              </span>
+              <Link
+                href="/"
+                className="rounded-lg border border-[rgba(241,240,232,0.12)] bg-[#111512] px-3 py-1.5 text-xs font-medium text-[#F1F0E8] hover:border-[#C6F36A]/40 transition-colors"
+              >
+                &larr; Overview
+              </Link>
+            </div>
           )}
         </div>
       </div>

@@ -215,6 +215,8 @@ export interface MilestoneSubmission {
   prNumber: number;
   prCommitSha: string;
   prUrl: string;
+  verifiedPrUrl?: string | null;
+  isVerified?: boolean;
   criteriaVersion: number;
   criteriaSnapshot: readonly CriteriaSnapshotItem[];
   criteriaHash: string;
@@ -231,7 +233,11 @@ export const milestoneSubmissionSchema = z.object({
   prCommitSha: z.string().regex(/^[0-9a-f]{40}$/, {
     message: "prCommitSha must be a 40-character lowercase hexadecimal SHA-1 string",
   }),
-  prUrl: z.string().url(),
+  prUrl: z.string().url().refine((url) => !url.includes("/issues/"), {
+    message: "prUrl must be a pull request URL, not an issue URL",
+  }),
+  verifiedPrUrl: z.string().url().nullable().optional(),
+  isVerified: z.boolean().optional(),
   criteriaVersion: z.number().int().positive(),
   criteriaSnapshot: z.array(criteriaSnapshotItemSchema),
   criteriaHash: z.string().regex(/^[0-9a-f]{64}$/, {

@@ -8,6 +8,7 @@
 import {
   DomainForbiddenError,
   DomainNotFoundError,
+  DomainUnauthorizedError,
   GitHubRateLimitError,
   ProviderUnavailableError,
 } from "../../common/errors";
@@ -32,6 +33,9 @@ export class MockGitHubProvider implements GitHubProvider {
   public simulateRateLimit: boolean = false;
   public simulateTimeout: boolean = false;
   public simulateNetworkFailure: boolean = false;
+  public simulate404: boolean = false;
+  public simulate403: boolean = false;
+  public simulate401: boolean = false;
 
   private makeRepoKey(owner: string, repo: string): string {
     return `${owner.toLowerCase()}/${repo.toLowerCase()}`;
@@ -89,11 +93,20 @@ export class MockGitHubProvider implements GitHubProvider {
     if (this.simulateRateLimit) {
       throw new GitHubRateLimitError("Rate limit exceeded", new Date(Date.now() + 3600_000), 60);
     }
+    if (this.simulate401) {
+      throw new DomainUnauthorizedError("GitHub authentication needs to be refreshed.");
+    }
+    if (this.simulate403) {
+      throw new DomainForbiddenError("GitHub access permission is insufficient.");
+    }
+    if (this.simulate404) {
+      throw new DomainNotFoundError("Pull request not found or inaccessible.");
+    }
 
     const key = this.makePRKey(owner, repo, pullNumber);
     const found = this.pullRequests.get(key);
     if (!found) {
-      throw new DomainNotFoundError("GitHub Pull Request", `${owner}/${repo}#${pullNumber}`);
+      throw new DomainNotFoundError("Pull request not found or inaccessible.");
     }
     return found;
   }
